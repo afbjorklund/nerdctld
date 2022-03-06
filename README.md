@@ -8,3 +8,4 @@ It can be used with `DOCKER_HOST=unix://nerdctl.sock`.
 
 * version
 * info
+* images

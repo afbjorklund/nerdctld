@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -44,6 +48,50 @@ func nerdctlInfo() map[string]interface{} {
 		log.Fatal(err)
 	}
 	return info
+}
+
+func nerdctlImages() []map[string]interface{} {
+	nc, err := exec.Command("nerdctl", "images", "--format", "{{json .}}").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var images []map[string]interface{}
+	scanner := bufio.NewScanner(bytes.NewReader(nc))
+	for scanner.Scan() {
+		var image map[string]interface{}
+		err = json.Unmarshal(scanner.Bytes(), &image)
+		if err != nil {
+			log.Fatal(err)
+		}
+		images = append(images, image)
+	}
+	return images
+}
+
+func unixTime(s string) int64 {
+	t, err := time.Parse("2006-01-02 15:04:05 -0700 MST", s)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return t.Unix()
+}
+
+func byteSize(s string) int64 {
+	w := strings.Split(s, " ")
+	n, err := strconv.ParseFloat(w[0], 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	m := 1
+	switch w[1] {
+	case "KiB":
+		m = 1024
+	case "MiB":
+		m = 1024 * 1024
+	case "GiB":
+		m = 1024 * 1024 * 1024
+	}
+	return int64(n * float64(m))
 }
 
 func setupRouter() *gin.Engine {
@@ -164,6 +212,32 @@ func setupRouter() *gin.Engine {
 		inf.ExperimentalBuild = true
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, inf)
+	})
+
+	r.GET("/v1.26/images/json", func(c *gin.Context) {
+		type img struct {
+			ID          string `json:"Id"`
+			ParentID    string `json:"ParentId"`
+			RepoTags    []string
+			RepoDigests []string
+			Created     int64
+			Size        int64
+			VirtualSize int64
+			Labels      map[string]string
+		}
+		imgs := []img{}
+		images := nerdctlImages()
+		for _, image := range images {
+			var img img
+			img.ID = image["ID"].(string)
+			img.RepoTags = []string{image["Repository"].(string) + ":" + image["Tag"].(string)}
+			img.RepoDigests = []string{image["Digest"].(string)}
+			img.Created = unixTime(image["CreatedAt"].(string))
+			img.Size = byteSize(image["Size"].(string))
+			imgs = append(imgs, img)
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, imgs)
 	})
 
 	return r
