@@ -16,6 +16,12 @@ You can use cURL for talking HTTP to a Unix socket:
 
 `curl --unix-socket /var/run/docker.sock http://localhost:2375/_ping`
 
+## Implementation
+
+This program uses the "Gin" web framework for HTTP.
+
+It and docs can be found at <https://gin-gonic.com/>
+
 ## Implemented commands
 
 * version
