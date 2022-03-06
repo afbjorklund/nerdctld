@@ -4,6 +4,12 @@ This is a daemon offering a `nerdctl.sock` endpoint.
 
 It can be used with `DOCKER_HOST=unix://nerdctl.sock`.
 
+## Docker API
+
+The Docker API (REST) is available at:
+
+<https://docs.docker.com/engine/api/>
+
 ## Debugging
 
 You can use cURL for talking HTTP to a Unix socket:
