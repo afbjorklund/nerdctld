@@ -24,16 +24,24 @@ func setupRouter() *gin.Engine {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
+	// new in 1.40 API:
+	r.HEAD("/_ping", func(c *gin.Context) {
+		c.Writer.Header().Set("API-Version", "1.26")
+		c.Writer.Header().Set("Content-Length", "0")
+		c.Status(http.StatusOK)
+	})
+
 	r.GET("/_ping", func(c *gin.Context) {
 		c.Writer.Header().Set("API-Version", "1.24")
 		c.Writer.Header().Set("Content-Type", "text/plain")
 		c.String(http.StatusOK, "OK")
 	})
 
-	r.GET("/v1.24/version", func(c *gin.Context) {
+	r.GET("/v1.26/version", func(c *gin.Context) {
 		var ver struct {
 			Version       string
 			APIVersion    string `json:"ApiVersion"`
+			MinAPIVersion string `json:"MinAPIVersion,omitempty"`
 			GitCommit     string
 			GoVersion     string
 			Os            string
@@ -43,7 +51,8 @@ func setupRouter() *gin.Engine {
 			BuildTime     string `json:",omitempty"`
 		}
 		ver.Version = nerdctlVersion()
-		ver.APIVersion = "1.24"
+		ver.APIVersion = "1.26"
+		ver.MinAPIVersion = "1.24"
 		ver.GoVersion = runtime.Version()
 		ver.Os = runtime.GOOS
 		ver.Arch = runtime.GOARCH
