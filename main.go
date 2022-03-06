@@ -22,6 +22,7 @@ func nerdctlVersion() string {
 
 func setupRouter() *gin.Engine {
 	r := gin.Default()
+	r.SetTrustedProxies(nil)
 
 	r.GET("/_ping", func(c *gin.Context) {
 		c.Writer.Header().Set("API-Version", "1.24")
