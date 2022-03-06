@@ -7,3 +7,4 @@ It can be used with `DOCKER_HOST=unix://nerdctl.sock`.
 ## Implemented commands
 
 * version
+* info
