@@ -1,10 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +18,19 @@ func nerdctlVersion() string {
 	v := strings.TrimSuffix(string(nv), "\n")
 	v = strings.Replace(v, "nerdctl version ", "", 1)
 	return v
+}
+
+func nerdctlVer() map[string]interface{} {
+	nc, err := exec.Command("nerdctl", "version", "--format", "{{json .}}").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var version map[string]interface{}
+	err = json.Unmarshal(nc, &version)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return version
 }
 
 func setupRouter() *gin.Engine {
@@ -50,12 +63,15 @@ func setupRouter() *gin.Engine {
 			Experimental  bool   `json:",omitempty"`
 			BuildTime     string `json:",omitempty"`
 		}
+		version := nerdctlVer()
+		client := version["Client"].(map[string]interface{})
 		ver.Version = nerdctlVersion()
 		ver.APIVersion = "1.26"
 		ver.MinAPIVersion = "1.24"
-		ver.GoVersion = runtime.Version()
-		ver.Os = runtime.GOOS
-		ver.Arch = runtime.GOARCH
+		ver.GitCommit = client["GitCommit"].(string)
+		ver.GoVersion = client["GoVersion"].(string)
+		ver.Os = client["Os"].(string)
+		ver.Arch = client["Arch"].(string)
 		ver.Experimental = true
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, ver)
