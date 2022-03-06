@@ -7,5 +7,6 @@ It can be used with `DOCKER_HOST=unix://nerdctl.sock`.
 ## Implemented commands
 
 * version
-* info
-* images
+* info (system info)
+* images (image ls)
+* ps (container ls)

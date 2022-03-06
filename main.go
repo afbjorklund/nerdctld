@@ -68,6 +68,24 @@ func nerdctlImages() []map[string]interface{} {
 	return images
 }
 
+func nerdctlContainers() []map[string]interface{} {
+	nc, err := exec.Command("nerdctl", "ps", "--format", "{{json .}}").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var containers []map[string]interface{}
+	scanner := bufio.NewScanner(bytes.NewReader(nc))
+	for scanner.Scan() {
+		var container map[string]interface{}
+		err = json.Unmarshal(scanner.Bytes(), &container)
+		if err != nil {
+			log.Fatal(err)
+		}
+		containers = append(containers, container)
+	}
+	return containers
+}
+
 func unixTime(s string) int64 {
 	t, err := time.Parse("2006-01-02 15:04:05 -0700 MST", s)
 	if err != nil {
@@ -238,6 +256,48 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, imgs)
+	})
+
+	r.GET("/v1.26/containers/json", func(c *gin.Context) {
+		type port struct {
+			IP          string `json:"IP,omitempty"`
+			PrivatePort uint16 `json:"PrivatePort"`
+			PublicPort  uint16 `json:"PublicPort,omitempty"`
+			Type        string `json:"Type"`
+		}
+		type ctr struct {
+			ID         string `json:"Id"`
+			Names      []string
+			Image      string
+			ImageID    string
+			Command    string
+			Created    int64
+			Ports      []port
+			SizeRw     int64 `json:",omitempty"`
+			SizeRootFs int64 `json:",omitempty"`
+			Labels     map[string]string
+			State      string
+			Status     string
+			HostConfig struct {
+				NetworkMode string `json:",omitempty"`
+			}
+			//NetworkSettings *SummaryNetworkSettings
+			//Mounts          []MountPoint
+		}
+		ctrs := []ctr{}
+		containers := nerdctlContainers()
+		for _, container := range containers {
+			var ctr ctr
+			ctr.ID = container["ID"].(string)
+			ctr.Names = []string{container["Names"].(string)}
+			ctr.Image = container["Image"].(string)
+			ctr.Command = container["Command"].(string)
+			ctr.Created = unixTime(container["CreatedAt"].(string))
+			ctr.Status = container["Status"].(string)
+			ctrs = append(ctrs, ctr)
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, ctrs)
 	})
 
 	return r
