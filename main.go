@@ -289,7 +289,7 @@ func setupRouter() *gin.Engine {
 		for _, container := range containers {
 			var ctr ctr
 			ctr.ID = container["ID"].(string)
-			ctr.Names = []string{container["Names"].(string)}
+			ctr.Names = []string{"/" + container["Names"].(string)}
 			ctr.Image = container["Image"].(string)
 			ctr.Command = container["Command"].(string)
 			ctr.Created = unixTime(container["CreatedAt"].(string))
