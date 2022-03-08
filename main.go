@@ -17,13 +17,18 @@
 package main
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -145,6 +150,71 @@ func nerdctlPull(name string, w io.Writer) error {
 		l, _ := json.Marshal(data)
 		w.Write(l)
 		w.Write([]byte{'\n'})
+	}
+	return nil
+}
+
+func nerdctlBuild(dir string, w io.Writer, t string, f string) error {
+	args := []string{"build"}
+	if t != "" {
+		args = append(args, "-t")
+		args = append(args, t)
+	}
+	if f != "" {
+		args = append(args, "-f")
+		args = append(args, f)
+	}
+	args = append(args, dir)
+	fmt.Printf("build %v\n", args)
+	// TODO: stream
+	cmd := exec.Command("nerdctl", args...)
+	nc, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(nc), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		data := map[string]string{"stream": line + "\n"}
+		l, _ := json.Marshal(data)
+		w.Write(l)
+		w.Write([]byte{'\n'})
+	}
+	return nil
+}
+
+func extractTar(dst string, r io.Reader) error {
+	tr := tar.NewReader(r)
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break // End of archive
+		}
+		if err != nil {
+			return err
+			log.Fatal(err)
+		}
+
+		target := filepath.Join(dst, header.Name)
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, 0755); err != nil {
+					return err
+				}
+			}
+		case tar.TypeReg:
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(f, tr); err != nil {
+				return err
+			}
+			f.Close()
+		}
 	}
 	return nil
 }
@@ -349,6 +419,30 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, ctrs)
+	})
+
+	r.POST("/:ver/build", func(c *gin.Context) {
+		contentType := c.Request.Header.Get("Content-Type")
+		if contentType != "application/tar" && contentType != "application/x-tar" {
+			http.Error(c.Writer, fmt.Sprintf("%s not tar", contentType), http.StatusBadRequest)
+			return
+		}
+		var r io.Reader = c.Request.Body
+		dir, err := ioutil.TempDir("", "build")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.RemoveAll(dir)
+		extractTar(dir, r)
+		tag := c.Query("t")
+		dockerfile := c.Query("dockerfile")
+		c.Writer.Header().Set("Content-Type", "application/json")
+		err = nerdctlBuild(dir, c.Writer, tag, dockerfile)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
 	})
 
 	return r

@@ -29,3 +29,4 @@ It and docs can be found at <https://gin-gonic.com/>
 * images (image ls)
 * pull (image pull)
 * ps (container ls)
+* build
