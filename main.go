@@ -129,7 +129,7 @@ func setupRouter() *gin.Engine {
 		c.String(http.StatusOK, "OK")
 	})
 
-	r.GET("/v1.26/version", func(c *gin.Context) {
+	r.GET("/:ver/version", func(c *gin.Context) {
 		var ver struct {
 			Version       string
 			APIVersion    string `json:"ApiVersion"`
@@ -156,7 +156,7 @@ func setupRouter() *gin.Engine {
 		c.JSON(http.StatusOK, ver)
 	})
 
-	r.GET("/v1.26/info", func(c *gin.Context) {
+	r.GET("/:ver/info", func(c *gin.Context) {
 		var inf struct {
 			ID                string
 			Containers        int
@@ -232,7 +232,7 @@ func setupRouter() *gin.Engine {
 		c.JSON(http.StatusOK, inf)
 	})
 
-	r.GET("/v1.26/images/json", func(c *gin.Context) {
+	r.GET("/:ver/images/json", func(c *gin.Context) {
 		type img struct {
 			ID          string `json:"Id"`
 			ParentID    string `json:"ParentId"`
@@ -258,7 +258,7 @@ func setupRouter() *gin.Engine {
 		c.JSON(http.StatusOK, imgs)
 	})
 
-	r.GET("/v1.26/containers/json", func(c *gin.Context) {
+	r.GET("/:ver/containers/json", func(c *gin.Context) {
 		type port struct {
 			IP          string `json:"IP,omitempty"`
 			PrivatePort uint16 `json:"PrivatePort"`
