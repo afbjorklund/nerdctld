@@ -20,6 +20,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -427,7 +428,19 @@ func setupRouter() *gin.Engine {
 			http.Error(c.Writer, fmt.Sprintf("%s not tar", contentType), http.StatusBadRequest)
 			return
 		}
-		var r io.Reader = c.Request.Body
+		var r io.Reader
+		br := bufio.NewReader(c.Request.Body)
+		r = br
+		magic, err := br.Peek(2)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if magic[0] == 0x1f && magic[1] == 0x8b {
+			r, err = gzip.NewReader(br)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 		dir, err := ioutil.TempDir("", "build")
 		if err != nil {
 			log.Fatal(err)
