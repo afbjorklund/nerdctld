@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os/exec"
@@ -126,6 +127,26 @@ func byteSize(s string) int64 {
 		m = 1024 * 1024 * 1024
 	}
 	return int64(n * float64(m))
+}
+
+func nerdctlPull(name string, w io.Writer) error {
+	args := []string{"pull"}
+	args = append(args, name)
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(nc), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		data := map[string]string{"stream": line + "\n"}
+		l, _ := json.Marshal(data)
+		w.Write(l)
+		w.Write([]byte{'\n'})
+	}
+	return nil
 }
 
 func setupRouter() *gin.Engine {
@@ -272,6 +293,20 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, imgs)
+	})
+
+	r.POST("/:ver/images/create", func(c *gin.Context) {
+		from := c.Query("fromImage")
+		tag := c.Query("tag")
+		name := from + ":" + tag
+		log.Printf("name: %s", name)
+		c.Writer.Header().Set("Content-Type", "application/json")
+		err := nerdctlPull(name, c.Writer)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
 	})
 
 	r.GET("/:ver/containers/json", func(c *gin.Context) {

@@ -27,4 +27,5 @@ It and docs can be found at <https://gin-gonic.com/>
 * version
 * info (system info)
 * images (image ls)
+* pull (image pull)
 * ps (container ls)
