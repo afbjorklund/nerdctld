@@ -6,6 +6,10 @@ This is a daemon offering a `nerdctl.sock` endpoint.
 
 It can be used with `DOCKER_HOST=unix://nerdctl.sock`.
 
+Normally the `nerdctl` tool is a CLI-only application.
+
+A client for the `containerd` and `buildkitd` servers.
+
 ## Docker API
 
 The Docker API (REST) is available at:
