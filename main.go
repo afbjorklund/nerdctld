@@ -95,8 +95,13 @@ func nerdctlImages() []map[string]interface{} {
 	return images
 }
 
-func nerdctlContainers() []map[string]interface{} {
-	nc, err := exec.Command("nerdctl", "ps", "--format", "{{json .}}").Output()
+func nerdctlContainers(all bool) []map[string]interface{} {
+	args := []string{"ps"}
+	if all {
+		args = append(args, "-a")
+	}
+	args = append(args, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -385,6 +390,7 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/:ver/containers/json", func(c *gin.Context) {
+		all := c.Query("all")
 		type port struct {
 			IP          string `json:"IP,omitempty"`
 			PrivatePort uint16 `json:"PrivatePort"`
@@ -411,7 +417,7 @@ func setupRouter() *gin.Engine {
 			//Mounts          []MountPoint
 		}
 		ctrs := []ctr{}
-		containers := nerdctlContainers()
+		containers := nerdctlContainers(all == "1")
 		for _, container := range containers {
 			var ctr ctr
 			ctr.ID = container["ID"].(string)
