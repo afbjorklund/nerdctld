@@ -423,7 +423,7 @@ func setupRouter() *gin.Engine {
 			ctr.ID = container["ID"].(string)
 			ctr.Names = []string{"/" + container["Names"].(string)}
 			ctr.Image = container["Image"].(string)
-			ctr.Command = container["Command"].(string)
+			ctr.Command = strings.Trim(container["Command"].(string), "\"")
 			ctr.Created = unixTime(container["CreatedAt"].(string))
 			ctr.Status = container["Status"].(string)
 			ctrs = append(ctrs, ctr)
