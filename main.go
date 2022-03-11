@@ -40,6 +40,10 @@ import (
 func nerdctlVersion() string {
 	nv, err := exec.Command("nerdctl", "--version").Output()
 	if err != nil {
+		// log stderr for basic troubleshooting
+		if exiterr, ok := err.(*exec.ExitError); ok {
+			log.Printf(string(exiterr.Stderr))
+		}
 		log.Fatal(err)
 	}
 	v := strings.TrimSuffix(string(nv), "\n")
@@ -462,6 +466,7 @@ func setupRouter() *gin.Engine {
 }
 
 func main() {
+	nerdctlVersion()
 	r := setupRouter()
 	//r.Run(":2375")
 	r.RunUnix("nerdctl.sock")
