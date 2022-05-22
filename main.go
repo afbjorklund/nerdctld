@@ -245,6 +245,9 @@ func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
 		return nil
 	}()
 	nc, err := cmd.Output()
+	if err != nil {
+		return err
+	}
 	lines := strings.Split(string(nc), "\n")
 	for _, line := range lines {
 		if line == "" {
