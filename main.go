@@ -515,7 +515,7 @@ func setupRouter() *gin.Engine {
 		c.Writer.Header().Set("Content-Type", "application/json")
 		err := nerdctlPull(name, c.Writer)
 		if err != nil {
-			c.Status(http.StatusInternalServerError)
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		c.Status(http.StatusOK)
@@ -533,7 +533,7 @@ func setupRouter() *gin.Engine {
 		c.Writer.Header().Set("Content-Type", "application/json")
 		err := nerdctlLoad(quiet == "1", br, c.Writer)
 		if err != nil {
-			c.Status(http.StatusInternalServerError)
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		c.Status(http.StatusOK)
@@ -549,7 +549,7 @@ func setupRouter() *gin.Engine {
 		c.Writer.Header().Set("Content-Type", "application/x-tar")
 		err := nerdctlSave(names, c.Writer)
 		if err != nil {
-			c.Status(http.StatusInternalServerError)
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		c.Status(http.StatusOK)
