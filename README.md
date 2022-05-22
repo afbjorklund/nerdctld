@@ -33,6 +33,8 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * version
 * info (system info)
 * images (image ls)
+* load (image load)
 * pull (image pull)
 * ps (container ls)
+* save (image save)
 * build
