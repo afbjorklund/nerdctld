@@ -192,6 +192,28 @@ func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
 	return nil
 }
 
+func nerdctlSave(names []string, w io.Writer) error {
+	args := []string{"save"}
+	args = append(args, names...)
+	cmd := exec.Command("nerdctl", args...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	go func() error {
+		defer stdout.Close()
+		if _, err := io.Copy(w, stdout); err != nil {
+			return err
+		}
+		return nil
+	}()
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func nerdctlBuild(dir string, w io.Writer, t string, f string) error {
 	args := []string{"build"}
 	if t != "" {
@@ -428,6 +450,22 @@ func setupRouter() *gin.Engine {
 		br := bufio.NewReader(c.Request.Body)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		err := nerdctlLoad(quiet == "1", br, c.Writer)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
+	})
+
+	r.GET("/:ver/images/get", func(c *gin.Context) {
+		names, exists := c.GetQueryArray("names")
+		if !exists {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		log.Printf("names: %s", names)
+		c.Writer.Header().Set("Content-Type", "application/x-tar")
+		err := nerdctlSave(names, c.Writer)
 		if err != nil {
 			c.Status(http.StatusInternalServerError)
 			return
