@@ -285,7 +285,7 @@ func setupRouter() *gin.Engine {
 
 	// new in 1.40 API:
 	r.HEAD("/_ping", func(c *gin.Context) {
-		c.Writer.Header().Set("API-Version", "1.26")
+		c.Writer.Header().Set("API-Version", "1.40")
 		c.Writer.Header().Set("Content-Length", "0")
 		c.Status(http.StatusOK)
 	})
@@ -312,7 +312,7 @@ func setupRouter() *gin.Engine {
 		version := nerdctlVer()
 		client := version["Client"].(map[string]interface{})
 		ver.Version = nerdctlVersion()
-		ver.APIVersion = "1.26"
+		ver.APIVersion = "1.40"
 		ver.MinAPIVersion = "1.24"
 		ver.GitCommit = client["GitCommit"].(string)
 		ver.GoVersion = client["GoVersion"].(string)
