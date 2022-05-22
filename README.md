@@ -16,6 +16,16 @@ The Docker API (REST) is available at:
 
 <https://docs.docker.com/engine/api/>
 
+Docker version | API version
+--- | ---
+20.10 | 1.41
+19.03 | 1.40
+18.09 | 1.39
+... | ...
+17.03 | 1.26
+1.13 | 1.25
+1.12 | 1.24
+
 ## Debugging
 
 You can use cURL for talking HTTP to a Unix socket:
