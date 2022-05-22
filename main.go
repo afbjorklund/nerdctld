@@ -51,6 +51,51 @@ func nerdctlVersion() string {
 	return v
 }
 
+func containerdVersion() string {
+	nv, err := exec.Command("containerd", "--version").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	v := strings.TrimSuffix(string(nv), "\n")
+	// containerd github.com/containerd/containerd Version GitCommit
+	c := strings.SplitN(v, " ", 4)
+	if len(c) >= 3 && c[0] == "containerd" {
+		return c[2]
+	}
+	return v
+}
+
+// vercmp compares two version strings
+// returns -1 if v1 < v2, 1 if v1 > v2, 0 otherwise.
+func vercmp(v1, v2 string) int {
+	var (
+		currTab  = strings.Split(v1, ".")
+		otherTab = strings.Split(v2, ".")
+	)
+
+	max := len(currTab)
+	if len(otherTab) > max {
+		max = len(otherTab)
+	}
+	for i := 0; i < max; i++ {
+		var currInt, otherInt int
+
+		if len(currTab) > i {
+			currInt, _ = strconv.Atoi(currTab[i])
+		}
+		if len(otherTab) > i {
+			otherInt, _ = strconv.Atoi(otherTab[i])
+		}
+		if currInt > otherInt {
+			return 1
+		}
+		if otherInt > currInt {
+			return -1
+		}
+	}
+	return 0
+}
+
 func nerdctlVer() map[string]interface{} {
 	nc, err := exec.Command("nerdctl", "version", "--format", "{{json .}}").Output()
 	if err != nil {
@@ -62,6 +107,27 @@ func nerdctlVer() map[string]interface{} {
 		log.Fatal(err)
 	}
 	return version
+}
+
+type Platform struct {
+	Name string
+}
+
+func nerdctlPlatform() Platform {
+	return Platform{Name: ""}
+}
+
+type ComponentVersion struct {
+	Name    string
+	Version string
+	Details map[string]string `json:",omitempty"`
+}
+
+func nerdctlComponents() []ComponentVersion {
+	var cmp []ComponentVersion
+	cmp = append(cmp, ComponentVersion{Name: "nerdctl", Version: nerdctlVersion()})
+	cmp = append(cmp, ComponentVersion{Name: "containerd", Version: containerdVersion()})
+	return cmp
 }
 
 func nerdctlInfo() map[string]interface{} {
@@ -297,7 +363,12 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/:ver/version", func(c *gin.Context) {
+		apiver := c.Param("ver")
+		log.Printf("api: %s", apiver)
 		var ver struct {
+			Platform   struct{ Name string } `json:",omitempty"`
+			Components []ComponentVersion    `json:",omitempty"`
+
 			Version       string
 			APIVersion    string `json:"ApiVersion"`
 			MinAPIVersion string `json:"MinAPIVersion,omitempty"`
@@ -319,6 +390,10 @@ func setupRouter() *gin.Engine {
 		ver.Os = client["Os"].(string)
 		ver.Arch = client["Arch"].(string)
 		ver.Experimental = true
+		if vercmp(apiver, "v1.35") > 0 {
+			ver.Platform = nerdctlPlatform()
+			ver.Components = nerdctlComponents()
+		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, ver)
 	})
