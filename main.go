@@ -51,7 +51,7 @@ func nerdctlVersion() string {
 	return v
 }
 
-func containerdVersion() string {
+func containerdVersion() (string, map[string]string) {
 	nv, err := exec.Command("containerd", "--version").Output()
 	if err != nil {
 		log.Fatal(err)
@@ -59,10 +59,10 @@ func containerdVersion() string {
 	v := strings.TrimSuffix(string(nv), "\n")
 	// containerd github.com/containerd/containerd Version GitCommit
 	c := strings.SplitN(v, " ", 4)
-	if len(c) >= 3 && c[0] == "containerd" {
-		return c[2]
+	if len(c) == 4 && c[0] == "containerd" {
+		return c[2], map[string]string{"GitCommit": c[3]}
 	}
-	return v
+	return v, nil
 }
 
 // vercmp compares two version strings
@@ -126,7 +126,8 @@ type ComponentVersion struct {
 func nerdctlComponents() []ComponentVersion {
 	var cmp []ComponentVersion
 	cmp = append(cmp, ComponentVersion{Name: "nerdctl", Version: nerdctlVersion()})
-	cmp = append(cmp, ComponentVersion{Name: "containerd", Version: containerdVersion()})
+	version, details := containerdVersion()
+	cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
 	return cmp
 }
 
