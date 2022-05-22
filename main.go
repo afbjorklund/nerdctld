@@ -164,6 +164,34 @@ func nerdctlPull(name string, w io.Writer) error {
 	return nil
 }
 
+func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
+	args := []string{"load"}
+	cmd := exec.Command("nerdctl", args...)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+	go func() error {
+		defer stdin.Close()
+		if _, err := io.Copy(stdin, r); err != nil {
+			return err
+		}
+		return nil
+	}()
+	nc, err := cmd.Output()
+	lines := strings.Split(string(nc), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		data := map[string]string{"stream": line + "\n"}
+		l, _ := json.Marshal(data)
+		w.Write(l)
+		w.Write([]byte{'\n'})
+	}
+	return nil
+}
+
 func nerdctlBuild(dir string, w io.Writer, t string, f string) error {
 	args := []string{"build"}
 	if t != "" {
@@ -382,6 +410,24 @@ func setupRouter() *gin.Engine {
 		log.Printf("name: %s", name)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		err := nerdctlPull(name, c.Writer)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
+	})
+
+	r.POST("/:ver/images/load", func(c *gin.Context) {
+		quiet := c.Query("quiet")
+		log.Printf("quiet: %s", quiet)
+		contentType := c.Request.Header.Get("Content-Type")
+		if contentType != "application/tar" && contentType != "application/x-tar" {
+			http.Error(c.Writer, fmt.Sprintf("%s not tar", contentType), http.StatusBadRequest)
+			return
+		}
+		br := bufio.NewReader(c.Request.Body)
+		c.Writer.Header().Set("Content-Type", "application/json")
+		err := nerdctlLoad(quiet == "1", br, c.Writer)
 		if err != nil {
 			c.Status(http.StatusInternalServerError)
 			return
