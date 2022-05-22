@@ -351,12 +351,16 @@ func setupRouter() *gin.Engine {
 
 	// new in 1.40 API:
 	r.HEAD("/_ping", func(c *gin.Context) {
+		c.Writer.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Writer.Header().Add("Pragma", "no-cache")
 		c.Writer.Header().Set("API-Version", "1.40")
 		c.Writer.Header().Set("Content-Length", "0")
 		c.Status(http.StatusOK)
 	})
 
 	r.GET("/_ping", func(c *gin.Context) {
+		c.Writer.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Writer.Header().Add("Pragma", "no-cache")
 		c.Writer.Header().Set("API-Version", "1.24")
 		c.Writer.Header().Set("Content-Type", "text/plain")
 		c.String(http.StatusOK, "OK")
