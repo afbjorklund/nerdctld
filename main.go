@@ -366,6 +366,14 @@ func extractTar(dst string, r io.Reader) error {
 	return nil
 }
 
+func stringArray(options []interface{}) []string {
+	result := []string{}
+	for _, option := range options {
+		result = append(result, option.(string))
+	}
+	return result
+}
+
 func setupRouter() *gin.Engine {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
@@ -509,6 +517,7 @@ func setupRouter() *gin.Engine {
 		inf.OSType = info["OSType"].(string)
 		inf.Architecture = info["Architecture"].(string)
 		inf.ExperimentalBuild = true
+		inf.SecurityOptions = stringArray(info["SecurityOptions"].([]interface{}))
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, inf)
 	})
