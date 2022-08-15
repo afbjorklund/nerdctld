@@ -79,6 +79,20 @@ func buildctlVersion() (string, map[string]string) {
 	return v, nil
 }
 
+func runcVersion() (string, map[string]string) {
+	nv, err := exec.Command("runc", "--version").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	l := strings.Split(string(nv), "\n")
+	if len(l) == 0 {
+		return "", nil
+	}
+	// runc version Version
+	v := strings.Replace(l[0], "runc version ", "", 1)
+	return v, nil
+}
+
 // vercmp compares two version strings
 // returns -1 if v1 < v2, 1 if v1 > v2, 0 otherwise.
 func vercmp(v1, v2 string) int {
@@ -144,6 +158,9 @@ func nerdctlComponents() []ComponentVersion {
 	cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
 	if version, details = buildctlVersion(); version != "" {
 		cmp = append(cmp, ComponentVersion{Name: "buildctl", Version: version, Details: details})
+	}
+	if version, details := runcVersion(); version != "" {
+		cmp = append(cmp, ComponentVersion{Name: "runc", Version: version, Details: details})
 	}
 	return cmp
 }
