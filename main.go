@@ -453,6 +453,7 @@ func setupRouter() *gin.Engine {
 			ExecutionDriver    string
 			LoggingDriver      string
 			CgroupDriver       string
+		        CgroupVersion      string `json:",omitempty"`
 			NEventsListener    int
 			KernelVersion      string
 			OperatingSystem    string
@@ -492,6 +493,7 @@ func setupRouter() *gin.Engine {
 		inf.Driver = info["Driver"].(string)
 		inf.LoggingDriver = info["LoggingDriver"].(string)
 		inf.CgroupDriver = info["CgroupDriver"].(string)
+		inf.CgroupVersion = info["CgroupVersion"].(string)
 		inf.KernelVersion = info["KernelVersion"].(string)
 		inf.OperatingSystem = info["OperatingSystem"].(string)
 		inf.OSType = info["OSType"].(string)
