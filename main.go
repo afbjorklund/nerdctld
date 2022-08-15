@@ -481,7 +481,7 @@ func setupRouter() *gin.Engine {
 			ExecutionDriver    string
 			LoggingDriver      string
 			CgroupDriver       string
-		        CgroupVersion      string `json:",omitempty"`
+			CgroupVersion      string `json:",omitempty"`
 			NEventsListener    int
 			KernelVersion      string
 			OperatingSystem    string
