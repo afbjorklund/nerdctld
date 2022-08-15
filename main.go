@@ -37,7 +37,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func nerdctlVersion() string {
+func nerdctlVersion() (string, map[string]string) {
 	nv, err := exec.Command("nerdctl", "--version").Output()
 	if err != nil {
 		// log stderr for basic troubleshooting
@@ -48,7 +48,7 @@ func nerdctlVersion() string {
 	}
 	v := strings.TrimSuffix(string(nv), "\n")
 	v = strings.Replace(v, "nerdctl version ", "", 1)
-	return v
+	return v, nil
 }
 
 func containerdVersion() (string, map[string]string) {
@@ -155,12 +155,13 @@ type ComponentVersion struct {
 
 func nerdctlComponents() []ComponentVersion {
 	var cmp []ComponentVersion
-	cmp = append(cmp, ComponentVersion{Name: "nerdctl", Version: nerdctlVersion()})
-	version, details := containerdVersion()
-	cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
-	if version, details = buildctlVersion(); version != "" {
+	version, details := nerdctlVersion()
+	cmp = append(cmp, ComponentVersion{Name: "nerdctl", Version: version, Details: details})
+	if version, details := buildctlVersion(); version != "" {
 		cmp = append(cmp, ComponentVersion{Name: "buildctl", Version: version, Details: details})
 	}
+	version, details = containerdVersion()
+	cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
 	if version, details := runcVersion(); version != "" {
 		cmp = append(cmp, ComponentVersion{Name: "runc", Version: version, Details: details})
 	}
@@ -434,7 +435,7 @@ func setupRouter() *gin.Engine {
 		}
 		version := nerdctlVer()
 		client := version["Client"].(map[string]interface{})
-		ver.Version = nerdctlVersion()
+		ver.Version, _ = nerdctlVersion()
 		ver.APIVersion = "1.40"
 		ver.MinAPIVersion = "1.24"
 		ver.GitCommit = client["GitCommit"].(string)
@@ -514,7 +515,7 @@ func setupRouter() *gin.Engine {
 		inf.Containers = len(nerdctlContainers(true))
 		inf.Images = len(nerdctlImages())
 		inf.Name = info["Name"].(string)
-		inf.ServerVersion = nerdctlVersion()
+		inf.ServerVersion, _ = nerdctlVersion()
 		inf.NCPU = int(info["NCPU"].(float64))
 		inf.MemTotal = int64(info["MemTotal"].(float64))
 		inf.Driver = info["Driver"].(string)
