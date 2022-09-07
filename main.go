@@ -35,6 +35,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cobra"
 )
 
 func nerdctlVersion() (string, map[string]string) {
@@ -394,7 +395,14 @@ func stringArray(options []interface{}) []string {
 	return result
 }
 
+var debug bool
+
 func setupRouter() *gin.Engine {
+
+	if !debug {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
@@ -698,9 +706,29 @@ func setupRouter() *gin.Engine {
 	return r
 }
 
-func main() {
+var rootCmd = &cobra.Command{
+	Use:   "nerdctld",
+	Short: "A docker api endpoint for nerdctl and containerd",
+	Run:   run,
+}
+
+func init() {
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "debug mode")
+	rootCmd.PersistentFlags().StringVar(&socket, "socket", "nerdctl.sock", "location of socket file")
+}
+
+var socket string
+
+func run(cmd *cobra.Command, args []string) {
 	nerdctlVersion()
 	r := setupRouter()
 	//r.Run(":2375")
-	r.RunUnix("nerdctl.sock")
+	r.RunUnix(socket)
+}
+
+func main() {
+	err := rootCmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
 }
