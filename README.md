@@ -10,6 +10,8 @@ Normally the `nerdctl` tool is a CLI-only application.
 
 A client for the `containerd` and `buildkitd` servers.
 
+<https://github.com/containerd/nerdctl>
+
 ## Docker API
 
 The Docker API (REST) is available at:
@@ -52,3 +54,7 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 Note: using "build" requires the `buildctl` client.
 
 It also requires a running moby `buildkitd` server.
+
+* <https://github.com/containerd/containerd>
+
+* <https://github.com/moby/buildkit>
