@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -43,7 +42,7 @@ func nerdctlVersion() (string, map[string]string) {
 	if err != nil {
 		// log stderr for basic troubleshooting
 		if exiterr, ok := err.(*exec.ExitError); ok {
-			log.Printf(string(exiterr.Stderr))
+			log.Print(string(exiterr.Stderr))
 		}
 		log.Fatal(err)
 	}
@@ -263,8 +262,14 @@ func nerdctlPull(name string, w io.Writer) error {
 		}
 		data := map[string]string{"stream": line + "\n"}
 		l, _ := json.Marshal(data)
-		w.Write(l)
-		w.Write([]byte{'\n'})
+		_, err = w.Write(l)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write([]byte{'\n'})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -276,15 +281,19 @@ func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	go func() error {
+	errors := make(chan error)
+	go func() {
 		defer stdin.Close()
 		if _, err := io.Copy(stdin, r); err != nil {
-			return err
+			errors <- err
 		}
-		return nil
+		errors <- nil
 	}()
 	nc, err := cmd.Output()
 	if err != nil {
+		return err
+	}
+	if err := <-errors; err != nil {
 		return err
 	}
 	lines := strings.Split(string(nc), "\n")
@@ -294,8 +303,14 @@ func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
 		}
 		data := map[string]string{"stream": line + "\n"}
 		l, _ := json.Marshal(data)
-		w.Write(l)
-		w.Write([]byte{'\n'})
+		_, err = w.Write(l)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write([]byte{'\n'})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -308,15 +323,19 @@ func nerdctlSave(names []string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	go func() error {
+	errors := make(chan error)
+	go func() {
 		defer stdout.Close()
 		if _, err := io.Copy(w, stdout); err != nil {
-			return err
+			errors <- err
 		}
-		return nil
+		errors <- nil
 	}()
 	err = cmd.Run()
 	if err != nil {
+		return err
+	}
+	if err := <-errors; err != nil {
 		return err
 	}
 	return nil
@@ -347,8 +366,14 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string) error {
 		}
 		data := map[string]string{"stream": line + "\n"}
 		l, _ := json.Marshal(data)
-		w.Write(l)
-		w.Write([]byte{'\n'})
+		_, err = w.Write(l)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write([]byte{'\n'})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -361,7 +386,6 @@ func extractTar(dst string, r io.Reader) error {
 			break // End of archive
 		}
 		if err != nil {
-			return err
 			log.Fatal(err)
 		}
 
@@ -404,7 +428,10 @@ func setupRouter() *gin.Engine {
 	}
 
 	r := gin.Default()
-	r.SetTrustedProxies(nil)
+	err := r.SetTrustedProxies(nil)
+	if err != nil {
+		log.Print(err)
+	}
 
 	// new in 1.40 API:
 	r.HEAD("/_ping", func(c *gin.Context) {
@@ -686,12 +713,16 @@ func setupRouter() *gin.Engine {
 				log.Fatal(err)
 			}
 		}
-		dir, err := ioutil.TempDir("", "build")
+		dir, err := os.MkdirTemp("", "build")
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer os.RemoveAll(dir)
-		extractTar(dir, r)
+		err = extractTar(dir, r)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		tag := c.Query("t")
 		dockerfile := c.Query("dockerfile")
 		c.Writer.Header().Set("Content-Type", "application/json")
@@ -707,9 +738,10 @@ func setupRouter() *gin.Engine {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "nerdctld",
-	Short: "A docker api endpoint for nerdctl and containerd",
-	Run:   run,
+	Use:          "nerdctld",
+	Short:        "A docker api endpoint for nerdctl and containerd",
+	RunE:         run,
+	SilenceUsage: true,
 }
 
 func init() {
@@ -719,11 +751,11 @@ func init() {
 
 var socket string
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
 	nerdctlVersion()
 	r := setupRouter()
-	//r.Run(":2375")
-	r.RunUnix(socket)
+	//return r.Run(":2375")
+	return r.RunUnix(socket)
 }
 
 func main() {
