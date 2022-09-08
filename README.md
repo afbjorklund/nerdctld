@@ -48,3 +48,7 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * ps (container ls)
 * save (image save)
 * build
+
+Note: using "build" requires the `buildctl` client.
+
+It also requires a running moby `buildkitd` server.
