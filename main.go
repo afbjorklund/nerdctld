@@ -28,9 +28,11 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -755,6 +757,14 @@ func run(cmd *cobra.Command, args []string) error {
 	nerdctlVersion()
 	r := setupRouter()
 	//return r.Run(":2375")
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		// http.Serve never returns, if successful
+		os.Remove(socket)
+		os.Exit(0)
+	}()
 	return r.RunUnix(socket)
 }
 
