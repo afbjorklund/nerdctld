@@ -60,6 +60,28 @@ $ sudo nerdctl version
 sudo DOCKER_HOST=unix:///var/run/nerdctl.sock docker version
 ```
 
+If you wanted to grant all users in the group "nerdctl" access:
+
+/etc/systemd/system/nerdctl.service.d/10-group.conf
+
+```
+[Service]
+UMask=0007
+Group=nerdctl
+```
+
+This would allow access without using `sudo` (or being `root`).
+
+**Warning**
+
+This `nerdctl` group grants privileges equivalent to the `root` user.
+
+Compare with the `docker` group for the docker daemon (`dockerd`):
+
+<https://docs.docker.com/engine/security/#docker-daemon-attack-surface>
+
+To run nerdctl without root privileges, see rootless (user) mode above.
+
 ## Remote socket
 
 Calling the socket over `ssh:` requires a program:
