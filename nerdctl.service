@@ -1,0 +1,11 @@
+[Unit]
+Description=nerdctl
+Requires=containerd.service
+After=containerd.service
+Documentation=https://github.com/containerd/nerdctl
+
+[Service]
+ExecStart=nerdctld --socket %t/nerdctl.sock
+
+[Install]
+WantedBy=multi-user.target

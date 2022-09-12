@@ -34,6 +34,32 @@ You can use cURL for talking HTTP to a Unix socket:
 
 `curl --unix-socket /var/run/docker.sock http://localhost:2375/_ping`
 
+## Running daemon
+
+### user containerd
+
+```console
+$ nerdctl version
+```
+
+`systemctl --user start nerdctl`
+
+```shell
+DOCKER_HOST=unix://$XDG_RUNTIME_DIR/nerdctl.sock docker version
+```
+
+### system containerd
+
+```console
+$ sudo nerdctl version
+```
+
+`sudo systemctl --system start nerdctl`
+
+```shell
+sudo DOCKER_HOST=unix:///var/run/nerdctl.sock docker version
+```
+
 ## Remote socket
 
 Calling the socket over `ssh:` requires a program:
