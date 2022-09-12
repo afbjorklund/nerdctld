@@ -55,6 +55,11 @@ And the ssh command has been hardcoded to call "docker":
 ```go
 sp.Args("docker", "system", "dial-stdio")
 ```
+
+Included is a small `nerdctl` shell wrapper for `docker`.
+
+It will forward `docker`, to `nerdctl` or `nerdctl.sock`.
+
 ## Implementation
 
 This program uses the "Gin" web framework for HTTP.
