@@ -58,3 +58,25 @@ It also requires a running moby `buildkitd` server.
 * <https://github.com/containerd/containerd>
 
 * <https://github.com/moby/buildkit>
+
+## Remote socket
+
+Calling the socket over `ssh:` requires a program:
+
+`docker system dial-stdio`
+
+It is possible to replace it with a small wrapper:
+
+`socat - nerdctl.sock`
+
+But the feature is **not** available in `nerdctl` (yet):
+
+```
+FATA[0000] unknown subcommand "dial-stdio" for "system"
+```
+
+And the ssh command has been hardcoded to call "docker":
+
+```go
+sp.Args("docker", "system", "dial-stdio")
+```
