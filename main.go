@@ -184,7 +184,9 @@ func nerdctlInfo() map[string]interface{} {
 }
 
 func nerdctlImages() []map[string]interface{} {
-	nc, err := exec.Command("nerdctl", "images", "--format", "{{json .}}").Output()
+	args := []string{"images"}
+	args = append(args, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
