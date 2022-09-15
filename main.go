@@ -183,8 +183,28 @@ func nerdctlInfo() map[string]interface{} {
 	return info
 }
 
-func nerdctlImages() []map[string]interface{} {
+func parseImageFilter(param []byte) string {
+	if len(param) == 0 {
+		return ""
+	}
+	// filters: {"reference":{"busybox":true}}
+	var filters map[string]interface{}
+	err := json.Unmarshal(param, &filters)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ref := filters["reference"].(map[string]interface{})
+	for key := range ref {
+		return key
+	}
+	return ""
+}
+
+func nerdctlImages(filter string) []map[string]interface{} {
 	args := []string{"images"}
+	if filter != "" {
+		args = append(args, filter)
+	}
 	args = append(args, "--format", "{{json .}}")
 	nc, err := exec.Command("nerdctl", args...).Output()
 	if err != nil {
@@ -552,7 +572,7 @@ func setupRouter() *gin.Engine {
 		info := nerdctlInfo()
 		inf.ID = info["ID"].(string)
 		inf.Containers = len(nerdctlContainers(true))
-		inf.Images = len(nerdctlImages())
+		inf.Images = len(nerdctlImages(""))
 		inf.Name = info["Name"].(string)
 		inf.ServerVersion, _ = nerdctlVersion()
 		inf.NCPU = int(info["NCPU"].(float64))
@@ -582,6 +602,8 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/:ver/images/json", func(c *gin.Context) {
+		filters := c.Query("filters")
+		filter := parseImageFilter([]byte(filters))
 		type img struct {
 			ID          string `json:"Id"`
 			ParentID    string `json:"ParentId"`
@@ -593,7 +615,7 @@ func setupRouter() *gin.Engine {
 			Labels      map[string]string
 		}
 		imgs := []img{}
-		images := nerdctlImages()
+		images := nerdctlImages(filter)
 		for _, image := range images {
 			var img img
 			img.ID = image["ID"].(string)
