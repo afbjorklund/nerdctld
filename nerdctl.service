@@ -5,6 +5,7 @@ After=containerd.service
 Documentation=https://github.com/containerd/nerdctl
 
 [Service]
+Environment=CONTAINERD_NAMESPACE=default
 ExecStart=nerdctld --socket %t/nerdctl.sock
 
 [Install]
