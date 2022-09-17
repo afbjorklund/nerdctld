@@ -6,13 +6,14 @@ all: binaries
 nerdctld:
 	$(GO) build -o $@
 
+.PHONY: binaries
 binaries: nerdctld
 
 .PHONY: lint
 lint:
 	golangci-lint run
 
-.PHONY: lint
+.PHONY: fix
 fix:
 	golangci-lint run --fix
 
