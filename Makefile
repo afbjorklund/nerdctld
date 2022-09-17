@@ -1,6 +1,8 @@
 
 GO ?= go
 
+PREFIX ?= /usr/local
+
 all: binaries
 
 nerdctld:
@@ -16,6 +18,12 @@ lint:
 .PHONY: fix
 fix:
 	golangci-lint run --fix
+
+.PHONY: install
+install: nerdctld
+	install -D -m 755 nerdctld $(DESTDIR)$(PREFIX)/bin/nerdctld
+	install -D -m 755 nerdctl.service $(DESTDIR)$(PREFIX)/lib/systemd/system/nerdctl.service
+	install -D -m 755 nerdctl.service $(DESTDIR)$(PREFIX)/lib/systemd/user/nerdctl.service
 
 .PHONY: clean
 clean:
