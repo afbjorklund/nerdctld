@@ -767,6 +767,7 @@ var rootCmd = &cobra.Command{
 	Use:          "nerdctld",
 	Short:        "A docker api endpoint for nerdctl and containerd",
 	RunE:         run,
+	Version:      version(),
 	SilenceUsage: true,
 }
 
@@ -790,6 +791,10 @@ func run(cmd *cobra.Command, args []string) error {
 		os.Exit(0)
 	}()
 	return r.RunUnix(socket)
+}
+
+func version() string {
+	return "0.0.0"
 }
 
 func main() {

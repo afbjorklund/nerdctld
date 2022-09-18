@@ -5,6 +5,8 @@ PREFIX ?= /usr/local
 
 all: binaries
 
+VERSION = 0.0.0
+
 nerdctld: main.go go.mod
 	$(GO) build -o $@ $(BUILDFLAGS)
 
@@ -31,12 +33,12 @@ artifacts:
 	GOOS=linux GOARCH=amd64 \
 	GO111MODULE=on CGO_ENABLED=0 $(MAKE) binaries \
 	BUILDFLAGS="-ldflags '-s -w'"
-	tar --owner=0 --group=0 -czvf nerdctld-linux-amd64.tar.gz nerdctld docker.sh
+	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-amd64.tar.gz nerdctld docker.sh
 	$(RM) nerdctld
 	GOOS=linux GOARCH=arm64 \
 	GO111MODULE=on CGO_ENABLED=0 $(MAKE) binaries \
 	BUILDFLAGS="-ldflags '-s -w'"
-	tar --owner=0 --group=0 -czvf nerdctld-linux-arm64.tar.gz nerdctld docker.sh
+	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-arm64.tar.gz nerdctld docker.sh
 	$(RM) nerdctld
 
 .PHONY: clean
