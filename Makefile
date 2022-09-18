@@ -5,7 +5,7 @@ PREFIX ?= /usr/local
 
 all: binaries
 
-nerdctld:
+nerdctld: main.go go.mod
 	$(GO) build -o $@ $(BUILDFLAGS)
 
 .PHONY: binaries
