@@ -12,6 +12,8 @@ A client for the `containerd` and `buildkitd` servers.
 
 <https://github.com/containerd/nerdctl>
 
+<https://github.com/docker/cli> `docker`
+
 ## Docker API
 
 The Docker API (REST) is available at:
@@ -130,7 +132,5 @@ Note: using "build" requires the `buildctl` client.
 It also requires a running moby `buildkitd` server.
 
 * <https://github.com/containerd/containerd>
-
-* <https://github.com/opencontainers/runc>
 
 * <https://github.com/moby/buildkit>
