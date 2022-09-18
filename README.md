@@ -30,6 +30,15 @@ Docker version | API version
 1.13 | 1.25
 1.12 | 1.24
 
+## Diagram
+
+![diagram](diagram.png)
+
+* `docker.sock`
+* `nerdctl.sock`
+* `containerd.sock`
+* `buildkit.sock`
+
 ## Debugging
 
 You can use cURL for talking HTTP to a Unix socket:
