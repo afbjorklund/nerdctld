@@ -93,6 +93,19 @@ Compare with the `docker` group for the docker daemon (`dockerd`):
 
 To run nerdctl without root privileges, see rootless (user) mode above.
 
+## Kubernetes
+
+In order to see the Kubernetes containers and images,
+you will need to change the containerd "namespace":
+
+
+/etc/systemd/system/nerdctl.service.d/10-namespace.conf
+
+```
+[Service]
+Environment=CONTAINERD_NAMESPACE=k8s.io
+```
+
 ## Remote socket
 
 Calling the socket over `ssh:` requires a program:
