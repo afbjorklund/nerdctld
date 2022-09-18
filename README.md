@@ -117,6 +117,37 @@ runtime-endpoint: unix:///run/containerd/containerd.sock
 
 <https://github.com/kubernetes-sigs/cri-tools>
 
+One difference is that nerdctl shows the repo digest as ID,
+whereas `crictl images` shows the image ID as the image ID:
+
+```
+REPOSITORY                                 TAG        IMAGE ID        CREATED              PLATFORM       SIZE         BLOB SIZE
+registry.k8s.io/pause                      3.8        900118502363    About an hour ago    linux/amd64    700.0 KiB    304.0 KiB
+registry.k8s.io/pause                      <none>     900118502363    About an hour ago    linux/amd64    700.0 KiB    304.0 KiB
+registry.k8s.io/kube-apiserver             v1.25.1    4f261d18da8d    About an hour ago    linux/amd64    125.5 MiB    32.6 MiB
+registry.k8s.io/kube-apiserver             <none>     4f261d18da8d    About an hour ago    linux/amd64    125.5 MiB    32.6 MiB
+```
+
+```
+IMAGE                                     TAG                 IMAGE ID            SIZE
+registry.k8s.io/pause                     3.8                 4873874c08efc       311kB
+registry.k8s.io/kube-apiserver            v1.25.1             b09a3dc327be2       34.2MB
+```
+
+Another difference is that nerdctl shows "pause" containers,
+but these sandbox images are hidden in `crictl ps` output:
+
+```
+CONTAINER ID    IMAGE                                              COMMAND                   CREATED              STATUS    PORTS    NAMES
+669b48948f93    registry.k8s.io/pause:3.8                          "/pause"                  About an hour ago    Up                 k8s://kube-system/kube-apiserver-lima-k8s
+8b960604e6d2    registry.k8s.io/kube-apiserver:v1.25.1             "kube-apiserver --ad…"    About an hour ago    Up                 k8s://kube-system/kube-apiserver-lima-k8s/kube-apiserver
+```
+
+```
+CONTAINER           IMAGE               CREATED             STATE               NAME                      ATTEMPT             POD ID              POD
+8b960604e6d29       b09a3dc327be2       About an hour ago   Running             kube-apiserver            0                   669b48948f931       kube-apiserver-lima-k8s
+```
+
 ## Remote socket
 
 Calling the socket over `ssh:` requires a program:
