@@ -106,6 +106,17 @@ you will need to change the containerd "namespace":
 Environment=CONTAINERD_NAMESPACE=k8s.io
 ```
 
+You could also use the Kubernetes tool called `crictl`,
+and configure it to talk to the "containerd" runtime:
+
+/etc/crictl.yaml
+
+```
+runtime-endpoint: unix:///run/containerd/containerd.sock
+```
+
+<https://github.com/kubernetes-sigs/cri-tools>
+
 ## Remote socket
 
 Calling the socket over `ssh:` requires a program:
