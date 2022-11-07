@@ -365,7 +365,19 @@ func nerdctlSave(names []string, w io.Writer) error {
 	return nil
 }
 
-func nerdctlBuild(dir string, w io.Writer, t string, f string) error {
+func parseObject(param []byte) map[string]interface{} {
+	if len(param) == 0 {
+		return nil
+	}
+	var args map[string]interface{}
+	err := json.Unmarshal(param, &args)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return args
+}
+
+func nerdctlBuild(dir string, w io.Writer, t string, f string, ba map[string]interface{}, l map[string]interface{}) error {
 	args := []string{"build"}
 	if t != "" {
 		args = append(args, "-t")
@@ -374,6 +386,18 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string) error {
 	if f != "" {
 		args = append(args, "-f")
 		args = append(args, filepath.Join(dir, f))
+	}
+	if len(ba) > 0 {
+		for k, v := range ba {
+			arg := fmt.Sprintf("%s=%s", k, v.(string))
+			args = append(args, "--build-arg="+arg)
+		}
+	}
+	if len(l) > 0 {
+		for k, v := range ba {
+			arg := fmt.Sprintf("%s=%s", k, v.(string))
+			args = append(args, "--label="+arg)
+		}
 	}
 	args = append(args, dir)
 	log.Printf("build %v\n", args)
@@ -752,7 +776,9 @@ func setupRouter() *gin.Engine {
 		tag := c.Query("t")
 		dockerfile := c.Query("dockerfile")
 		c.Writer.Header().Set("Content-Type", "application/json")
-		err = nerdctlBuild(dir, c.Writer, tag, dockerfile)
+		buildargs := parseObject([]byte(c.Query("buildargs")))
+		labels := parseObject([]byte(c.Query("labels")))
+		err = nerdctlBuild(dir, c.Writer, tag, dockerfile, buildargs, labels)
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
