@@ -223,6 +223,21 @@ func nerdctlImages(filter string) []map[string]interface{} {
 	return images
 }
 
+func nerdctlImage(name string) (map[string]interface{}, error) {
+	args := []string{"image", "inspect", "--mode", "dockercompat"}
+	args = append(args, name, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return nil, err
+	}
+	var image map[string]interface{}
+	err = json.Unmarshal(nc, &image)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return image, nil
+}
+
 func nerdctlContainers(all bool) []map[string]interface{} {
 	args := []string{"ps"}
 	if all {
@@ -244,6 +259,21 @@ func nerdctlContainers(all bool) []map[string]interface{} {
 		containers = append(containers, container)
 	}
 	return containers
+}
+
+func nerdctlContainer(name string) (map[string]interface{}, error) {
+	args := []string{"container", "inspect", "--mode", "dockercompat"}
+	args = append(args, name, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return nil, err
+	}
+	var image map[string]interface{}
+	err = json.Unmarshal(nc, &image)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return image, nil
 }
 
 func unixTime(s string) int64 {
@@ -653,6 +683,17 @@ func setupRouter() *gin.Engine {
 		c.JSON(http.StatusOK, imgs)
 	})
 
+	r.GET("/:ver/images/:name/json", func(c *gin.Context) {
+		name := c.Param("name")
+		image, err := nerdctlImage(name)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusNotFound)
+			return
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, image)
+	})
+
 	r.POST("/:ver/images/create", func(c *gin.Context) {
 		from := c.Query("fromImage")
 		tag := c.Query("tag")
@@ -742,6 +783,17 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, ctrs)
+	})
+
+	r.GET("/:ver/containers/:name/json", func(c *gin.Context) {
+		name := c.Param("name")
+		container, err := nerdctlContainer(name)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusNotFound)
+			return
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, container)
 	})
 
 	r.POST("/:ver/build", func(c *gin.Context) {
