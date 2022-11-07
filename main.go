@@ -373,7 +373,7 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string) error {
 	}
 	if f != "" {
 		args = append(args, "-f")
-		args = append(args, f)
+		args = append(args, filepath.Join(dir, f))
 	}
 	args = append(args, dir)
 	log.Printf("build %v\n", args)
