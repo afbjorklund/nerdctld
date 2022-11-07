@@ -37,6 +37,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
+	"github.com/tj/go-naturaldate"
 )
 
 func nerdctlVersion() (string, map[string]string) {
@@ -238,6 +239,26 @@ func nerdctlImage(name string) (map[string]interface{}, error) {
 	return image, nil
 }
 
+func nerdctlHistory(name string) ([]map[string]interface{}, error) {
+	args := []string{"history"}
+	args = append(args, name, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return nil, err
+	}
+	var history []map[string]interface{}
+	scanner := bufio.NewScanner(bytes.NewReader(nc))
+	for scanner.Scan() {
+		var entry map[string]interface{}
+		err = json.Unmarshal(scanner.Bytes(), &entry)
+		if err != nil {
+			log.Fatal(err)
+		}
+		history = append(history, entry)
+	}
+	return history, nil
+}
+
 func nerdctlContainers(all bool) []map[string]interface{} {
 	args := []string{"ps"}
 	if all {
@@ -278,6 +299,14 @@ func nerdctlContainer(name string) (map[string]interface{}, error) {
 
 func unixTime(s string) int64 {
 	t, err := time.Parse("2006-01-02 15:04:05 -0700 MST", s)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return t.Unix()
+}
+
+func unixNatural(s string) int64 {
+	t, err := naturaldate.Parse(s, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -692,6 +721,36 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, image)
+	})
+
+	r.GET("/:ver/images/:name/history", func(c *gin.Context) {
+		name := c.Param("name")
+		nchistory, err := nerdctlHistory(name)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		type hist struct {
+			Comment   string   `json:"Comment"`
+			Created   int64    `json:"Created"`
+			CreatedBy string   `json:"CreatedBy"`
+			ID        string   `json:"Id"`
+			Size      int64    `json:"Size"`
+			Tags      []string `json:"Tags"`
+		}
+		history := []hist{}
+		for _, nch := range nchistory {
+			var h hist
+			h.ID = nch["Snapshot"].(string)
+			h.Created = unixNatural(nch["CreatedSince"].(string))
+			h.CreatedBy = nch["CreatedBy"].(string)
+			h.Size = byteSize(nch["Size"].(string))
+			h.Comment = nch["Comment"].(string)
+			history = append(history, h)
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, history)
 	})
 
 	r.POST("/:ver/images/create", func(c *gin.Context) {

@@ -186,6 +186,7 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * info (system info)
 * images (image ls)
 * inspect (image inspect)
+* history (image history)
 * load (image load)
 * pull (image pull)
 * ps (container ls)
