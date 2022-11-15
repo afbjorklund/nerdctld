@@ -453,7 +453,7 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, ba map[string]int
 		}
 	}
 	if len(l) > 0 {
-		for k, v := range ba {
+		for k, v := range l {
 			arg := fmt.Sprintf("%s=%s", k, v.(string))
 			args = append(args, "--label="+arg)
 		}
