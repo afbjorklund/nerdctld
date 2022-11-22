@@ -1,0 +1,25 @@
+# nfpm config file
+#
+# check https://nfpm.goreleaser.com/configuration for detailed usage
+#
+name: "nerdctld"
+arch: "${GOARCH}"
+platform: "${GOOS}"
+version: "${VERSION}"
+section: "default"
+priority: "extra"
+rpm:
+  group: "System Environment/Daemons"
+maintainer: "${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>"
+description: |
+  A docker api endpoint for nerdctl and containerd
+vendor: "containerd.io"
+homepage: "https://github.com/afbjorklund/nerdctld"
+license: "APL-2.0"
+contents:
+  - src: ./nerdctld
+    dst: /usr/bin/nerdctld
+  - src: ./nerdctl.service
+    dst: /usr/lib/systemd/system/nerdctl.service
+  - src: ./nerdctl.service
+    dst: /usr/lib/systemd/user/nerdctl.service

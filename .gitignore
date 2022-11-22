@@ -1,1 +1,5 @@
 nerdctld
+*.deb
+*.rpm
+*.tgz
+*.tar.gz

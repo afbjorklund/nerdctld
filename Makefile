@@ -33,11 +33,15 @@ artifacts:
 	GOOS=linux GOARCH=amd64 \
 	GO111MODULE=on CGO_ENABLED=0 $(MAKE) binaries \
 	BUILDFLAGS="-ldflags '-s -w'"
+	GOOS=linux GOARCH=amd64 VERSION=$(VERSION) nfpm pkg --packager deb
+	GOOS=linux GOARCH=amd64 VERSION=$(VERSION) nfpm pkg --packager rpm
 	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-amd64.tar.gz nerdctld docker.sh
 	$(RM) nerdctld
 	GOOS=linux GOARCH=arm64 \
 	GO111MODULE=on CGO_ENABLED=0 $(MAKE) binaries \
 	BUILDFLAGS="-ldflags '-s -w'"
+	GOOS=linux GOARCH=arm64 VERSION=$(VERSION) nfpm pkg --packager deb
+	GOOS=linux GOARCH=arm64 VERSION=$(VERSION) nfpm pkg --packager rpm
 	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-arm64.tar.gz nerdctld docker.sh
 	$(RM) nerdctld
 
