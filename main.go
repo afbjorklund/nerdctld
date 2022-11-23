@@ -449,7 +449,7 @@ func parseObject(param []byte) map[string]interface{} {
 	return args
 }
 
-func nerdctlBuild(dir string, w io.Writer, t string, f string, ba map[string]interface{}, l map[string]interface{}) error {
+func nerdctlBuild(dir string, w io.Writer, t string, f string, p string, ba map[string]interface{}, l map[string]interface{}) error {
 	args := []string{"build"}
 	if t != "" {
 		args = append(args, "-t")
@@ -458,6 +458,10 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, ba map[string]int
 	if f != "" {
 		args = append(args, "-f")
 		args = append(args, filepath.Join(dir, f))
+	}
+	if p != "" {
+		args = append(args, "--platform")
+		args = append(args, p)
 	}
 	if len(ba) > 0 {
 		for k, v := range ba {
@@ -911,10 +915,11 @@ func setupRouter() *gin.Engine {
 		}
 		tag := c.Query("t")
 		dockerfile := c.Query("dockerfile")
+		platform := c.Query("platform")
 		c.Writer.Header().Set("Content-Type", "application/json")
 		buildargs := parseObject([]byte(c.Query("buildargs")))
 		labels := parseObject([]byte(c.Query("labels")))
-		err = nerdctlBuild(dir, c.Writer, tag, dockerfile, buildargs, labels)
+		err = nerdctlBuild(dir, c.Writer, tag, dockerfile, platform, buildargs, labels)
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
