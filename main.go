@@ -259,6 +259,17 @@ func nerdctlHistory(name string) ([]map[string]interface{}, error) {
 	return history, nil
 }
 
+func nerdctlTag(source string, target string) error {
+	args := []string{"tag"}
+	args = append(args, source)
+	args = append(args, target)
+	err := exec.Command("nerdctl", args...).Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func nerdctlContainers(all bool) []map[string]interface{} {
 	args := []string{"ps"}
 	if all {
@@ -751,6 +762,18 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, history)
+	})
+
+	r.POST("/:ver/images/:name/tag", func(c *gin.Context) {
+		name := c.Param("name")
+		repo := c.Query("repo")
+		tag := c.Query("tag")
+		err := nerdctlTag(name, fmt.Sprintf("%s:%s", repo, tag))
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
 	})
 
 	r.POST("/:ver/images/create", func(c *gin.Context) {
