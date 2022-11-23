@@ -5,7 +5,7 @@ PREFIX ?= /usr/local
 
 all: binaries
 
-VERSION = 0.1.1
+VERSION = 0.2.0
 
 nerdctld: main.go go.mod
 	$(GO) build -o $@ $(BUILDFLAGS)
