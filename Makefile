@@ -25,7 +25,9 @@ fix:
 install: nerdctld
 	install -D -m 755 nerdctld $(DESTDIR)$(PREFIX)/bin/nerdctld
 	install -D -m 755 nerdctl.service $(DESTDIR)$(PREFIX)/lib/systemd/system/nerdctl.service
+	install -D -m 755 nerdctl.socket $(DESTDIR)$(PREFIX)/lib/systemd/system/nerdctl.socket
 	install -D -m 755 nerdctl.service $(DESTDIR)$(PREFIX)/lib/systemd/user/nerdctl.service
+	install -D -m 755 nerdctl.socket $(DESTDIR)$(PREFIX)/lib/systemd/user/nerdctl.socket
 
 .PHONY: artifacts
 artifacts:

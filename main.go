@@ -35,6 +35,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/coreos/go-systemd/v22/activation"
+	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/tj/go-naturaldate"
@@ -933,24 +935,50 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "debug mode")
+	rootCmd.PersistentFlags().StringVar(&addr, "addr", "", "listening address")
 	rootCmd.PersistentFlags().StringVar(&socket, "socket", "nerdctl.sock", "location of socket file")
 }
 
+var addr string
 var socket string
 
 func run(cmd *cobra.Command, args []string) error {
 	nerdctlVersion()
 	r := setupRouter()
-	//return r.Run(":2375")
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		// http.Serve never returns, if successful
-		os.Remove(socket)
-		os.Exit(0)
-	}()
-	return r.RunUnix(socket)
+	// deprecated parameter
+	if addr == "" && socket != "" {
+		addr = "unix://" + socket
+	}
+	addrSlice := strings.SplitN(addr, "://", 2)
+	if len(addrSlice) < 2 {
+		return fmt.Errorf("did you mean unix://%s", addr)
+	}
+	proto := addrSlice[0]
+	listenAddr := addrSlice[1]
+	switch proto {
+	case "tcp":
+		return r.Run(listenAddr)
+	case "fd":
+		_, err := daemon.SdNotify(false, daemon.SdNotifyReady)
+		if err != nil {
+			return err
+		}
+		files := activation.Files(true)
+		return r.RunFd(int(files[0].Fd()))
+	case "unix":
+		socket := listenAddr
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		go func() {
+			<-sigs
+			// http.Serve never returns, if successful
+			os.Remove(socket)
+			os.Exit(0)
+		}()
+		return r.RunUnix(socket)
+	default:
+		return fmt.Errorf("addr %s not supported", addr)
+	}
 }
 
 func version() string {

@@ -21,5 +21,9 @@ contents:
     dst: /usr/bin/nerdctld
   - src: ./nerdctl.service
     dst: /usr/lib/systemd/system/nerdctl.service
+  - src: ./nerdctl.socket
+    dst: /usr/lib/systemd/system/nerdctl.socket
   - src: ./nerdctl.service
     dst: /usr/lib/systemd/user/nerdctl.service
+  - src: ./nerdctl.socket
+    dst: /usr/lib/systemd/user/nerdctl.socket
