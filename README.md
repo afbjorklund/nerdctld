@@ -53,7 +53,7 @@ You can use cURL for talking HTTP to a Unix socket:
 $ nerdctl version
 ```
 
-`systemctl --user start nerdctl`
+`systemctl --user start nerdctl.socket`
 
 ```shell
 DOCKER_HOST=unix://$XDG_RUNTIME_DIR/nerdctl.sock docker version
@@ -65,7 +65,7 @@ DOCKER_HOST=unix://$XDG_RUNTIME_DIR/nerdctl.sock docker version
 $ sudo nerdctl version
 ```
 
-`sudo systemctl --system start nerdctl`
+`sudo systemctl --system start nerdctl.socket`
 
 ```shell
 sudo DOCKER_HOST=unix:///var/run/nerdctl.sock docker version
@@ -73,10 +73,10 @@ sudo DOCKER_HOST=unix:///var/run/nerdctl.sock docker version
 
 If you wanted to grant all users in the group "nerdctl" access:
 
-/etc/systemd/system/nerdctl.service.d/10-group.conf
+/etc/systemd/system/nerdctl.socket.d/10-group.conf
 
 ```
-[Service]
+[Socket]
 UMask=0007
 Group=nerdctl
 ```
