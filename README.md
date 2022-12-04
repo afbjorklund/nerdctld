@@ -176,7 +176,7 @@ It will forward `docker`, to `nerdctl` or `nerdctl.sock`.
 
 Make sure to set the DOCKER_HOST variable, for the user:
 
-/etc/profile.d/docker_host.sh
+~/.bashrc
 
 ```bash
 export DOCKER_HOST=unix:///var/run/nerdctl.sock
