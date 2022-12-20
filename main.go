@@ -484,6 +484,32 @@ func nerdctlSave(names []string, w io.Writer) error {
 	return nil
 }
 
+func nerdctlRmi(name string, w io.Writer) error {
+	args := []string{"rmi"}
+	args = append(args, name)
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return err
+	}
+	removed := []map[string]string{}
+	lines := strings.Split(string(nc), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Untagged: ") {
+			image := strings.Replace(line, "Untagged: ", "", 1)
+			removed = append(removed, map[string]string{"Untagged": image})
+		} else if strings.HasPrefix(line, "Deleted:") {
+			image := strings.Replace(line, "Deleted: ", "", 1)
+			removed = append(removed, map[string]string{"Deleted": image})
+		}
+	}
+	d, _ := json.Marshal(removed)
+	_, err = w.Write(d)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func parseObject(param []byte) map[string]interface{} {
 	if len(param) == 0 {
 		return nil
@@ -861,6 +887,21 @@ func setupRouter() *gin.Engine {
 		log.Printf("name: %s", name)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		err := nerdctlPull(name, c.Writer)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
+	})
+
+	r.DELETE("/:ver/images/*name", func(c *gin.Context) {
+		name := c.Param("name")
+		// handle extra slash from using parameter wildcard
+		if strings.HasPrefix(name, "/") {
+			name = strings.Replace(name, "/", "", 1)
+		}
+		log.Printf("name: %s", name)
+		err := nerdctlRmi(name, c.Writer)
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return

@@ -202,6 +202,7 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * load (image load)
 * pull (image pull)
 * push (image push)
+* rmi (image rm)
 * save (image save)
 * tag (image tag)
 * build
