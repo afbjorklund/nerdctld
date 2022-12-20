@@ -30,6 +30,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -391,6 +392,31 @@ func nerdctlPull(name string, w io.Writer) error {
 	return nil
 }
 
+func nerdctlPush(name string, w io.Writer) error {
+	args := []string{"push"}
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(nc), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		data := map[string]string{"stream": line + "\n"}
+		l, _ := json.Marshal(data)
+		_, err = w.Write(l)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write([]byte{'\n'})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
 	args := []string{"load"}
 	cmd := exec.Command("nerdctl", args...)
@@ -565,6 +591,9 @@ func stringArray(options []interface{}) []string {
 }
 
 var debug bool
+
+// regular expression for slashes-in-parameter workaround
+var reImagesPush = regexp.MustCompile(`^/(?P<ver>.*)/images/(?P<name>.*)/push$`)
 
 func setupRouter() *gin.Engine {
 
@@ -811,6 +840,20 @@ func setupRouter() *gin.Engine {
 		c.Status(http.StatusOK)
 	})
 
+	r.POST("/:ver/images/:name/push", func(c *gin.Context) {
+		name := c.Param("name")
+		tag := c.Query("tag")
+		name = name + ":" + tag
+		log.Printf("name: %s", name)
+		c.Writer.Header().Set("Content-Type", "application/json")
+		err := nerdctlPush(name, c.Writer)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
+	})
+
 	r.POST("/:ver/images/create", func(c *gin.Context) {
 		from := c.Query("fromImage")
 		tag := c.Query("tag")
@@ -954,6 +997,23 @@ func setupRouter() *gin.Engine {
 			return
 		}
 		c.Status(http.StatusOK)
+	})
+
+	r.NoRoute(func(c *gin.Context) {
+		// the "push" route doesn't match name containing slashes (like repo)
+		if m := reImagesPush.FindStringSubmatch(c.Request.URL.Path); m != nil {
+			name := m[reImagesPush.SubexpIndex("name")]
+			tag := c.Query("tag")
+			name = name + ":" + tag
+			log.Printf("name: %s", name)
+			c.Writer.Header().Set("Content-Type", "application/json")
+			err := nerdctlPush(name, c.Writer)
+			if err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			c.Status(http.StatusOK)
+		}
 	})
 
 	return r

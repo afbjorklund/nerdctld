@@ -194,13 +194,14 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 
 * version
 * info (system info)
+* ps (container ls)
+* inspect (container inspect)
 * images (image ls)
 * inspect (image inspect)
 * history (image history)
 * load (image load)
 * pull (image pull)
-* ps (container ls)
-* inspect (container inspect)
+* push (image push)
 * save (image save)
 * tag (image tag)
 * build
