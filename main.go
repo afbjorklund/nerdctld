@@ -104,6 +104,20 @@ func runcVersion() (string, map[string]string) {
 	return v, nil
 }
 
+func tiniVersion() (string, map[string]string) {
+	nv, err := exec.Command("tini", "--version").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	l := strings.Split(string(nv), "\n")
+	if len(l) == 0 {
+		return "", nil
+	}
+	// tini version Version
+	v := strings.Replace(l[0], "tini version ", "", 1)
+	return v, nil
+}
+
 // vercmp compares two version strings
 // returns -1 if v1 < v2, 1 if v1 > v2, 0 otherwise.
 func vercmp(v1, v2 string) int {
@@ -173,6 +187,9 @@ func nerdctlComponents() []ComponentVersion {
 	cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
 	if version, details := runcVersion(); version != "" {
 		cmp = append(cmp, ComponentVersion{Name: "runc", Version: version, Details: details})
+	}
+	if version, details := tiniVersion(); version != "" { // renamed to "docker-init" in docker
+		cmp = append(cmp, ComponentVersion{Name: "tini", Version: version, Details: details})
 	}
 	return cmp
 }
@@ -676,6 +693,7 @@ func setupRouter() *gin.Engine {
 			// running when the daemon is shutdown or upon daemon start if
 			// running containers are detected
 			LiveRestoreEnabled bool
+			InitBinary         string
 		}
 		info := nerdctlInfo()
 		inf.ID = info["ID"].(string)
@@ -706,6 +724,7 @@ func setupRouter() *gin.Engine {
 		inf.ExperimentalBuild = true
 		inf.DefaultRuntime = "runc"
 		inf.Runtimes = map[string]runtime{"runc": {Path: "runc"}}
+		inf.InitBinary = "tini"
 		inf.SecurityOptions = stringArray(info["SecurityOptions"].([]interface{}))
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, inf)
