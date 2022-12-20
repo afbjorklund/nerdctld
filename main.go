@@ -66,7 +66,9 @@ func containerdVersion() (string, map[string]string) {
 	c := strings.SplitN(v, " ", 4)
 	if len(c) == 4 && c[0] == "containerd" {
 		v = strings.Replace(c[2], "v", "", 1)
-		return v, map[string]string{"GitCommit": c[3]}
+		if c[3] != "" {
+			return v, map[string]string{"GitCommit": c[3]}
+		}
 	}
 	return v, nil
 }
@@ -81,7 +83,9 @@ func buildctlVersion() (string, map[string]string) {
 	c := strings.SplitN(v, " ", 4)
 	if len(c) == 4 && c[0] == "buildctl" {
 		v = strings.Replace(c[2], "v", "", 1)
-		return v, map[string]string{"GitCommit": c[3]}
+		if c[3] != "" {
+			return v, map[string]string{"GitCommit": c[3]}
+		}
 	}
 	return v, nil
 }
