@@ -616,16 +616,10 @@ func stringArray(options []interface{}) []string {
 	return result
 }
 
-var debug bool
-
 // regular expression for slashes-in-parameter workaround
 var reImagesPush = regexp.MustCompile(`^/(?P<ver>.*)/images/(?P<name>.*)/push$`)
 
 func setupRouter() *gin.Engine {
-
-	if !debug {
-		gin.SetMode(gin.ReleaseMode)
-	}
 
 	r := gin.Default()
 	err := r.SetTrustedProxies(nil)
@@ -1074,11 +1068,17 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&socket, "socket", "nerdctl.sock", "location of socket file")
 }
 
+var debug bool
 var addr string
 var socket string
 
 func run(cmd *cobra.Command, args []string) error {
 	nerdctlVersion()
+
+	if !debug {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := setupRouter()
 	// deprecated parameter
 	if addr == "" && socket != "" {
