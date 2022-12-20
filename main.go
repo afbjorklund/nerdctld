@@ -615,6 +615,10 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/:ver/info", func(c *gin.Context) {
+		type runtime struct {
+			Path string   `json:"path"`
+			Args []string `json:"runtimeArgs,omitempty"`
+		}
 		var inf struct {
 			ID                string
 			Containers        int
@@ -665,8 +669,8 @@ func setupRouter() *gin.Engine {
 			ClusterStore      string
 			ClusterAdvertise  string
 			SecurityOptions   []string
-			//Runtimes           map[string]Runtime
-			DefaultRuntime string
+			Runtimes          map[string]runtime
+			DefaultRuntime    string
 			//Swarm              swarm.Info
 			// LiveRestoreEnabled determines whether containers should be kept
 			// running when the daemon is shutdown or upon daemon start if
@@ -700,6 +704,8 @@ func setupRouter() *gin.Engine {
 		inf.OSType = info["OSType"].(string)
 		inf.Architecture = info["Architecture"].(string)
 		inf.ExperimentalBuild = true
+		inf.DefaultRuntime = "runc"
+		inf.Runtimes = map[string]runtime{"runc": {Path: "runc"}}
 		inf.SecurityOptions = stringArray(info["SecurityOptions"].([]interface{}))
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, inf)
