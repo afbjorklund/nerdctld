@@ -1,0 +1,51 @@
+# This example requires Lima v0.8.0 or later
+images:
+- location: "https://download.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/x86_64/images/Fedora-Cloud-Base-37-1.7.x86_64.qcow2"
+  arch: "x86_64"
+- location: "https://download.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images/Fedora-Cloud-Base-37-1.7.aarch64.qcow2"
+  arch: "aarch64"
+
+mounts:
+- location: "~"
+- location: "/tmp/lima"
+  writable: true
+containerd:
+  system: false
+  user: true
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    command -v nerdctld >/dev/null 2>&1 && exit 0
+    NAME=nerdctld
+    VERSION=0.2.1
+    case $(uname -m) in
+      x86_64)   RPMARCH=x86_64;;
+      aarch64)  RPMARCH=aarch64;;
+    esac
+    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}-${VERSION}.${RPMARCH}.rpm
+    rpm -i ${NAME}-${VERSION}.${RPMARCH}.rpm
+- mode: user
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    systemctl --user enable --now nerdctl.socket
+probes:
+- script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    if ! timeout 30s bash -c "until command -v nerdctld >/dev/null 2>&1; do sleep 3; done"; then
+      echo >&2 "nerdctld is not installed yet"
+      exit 1
+    fi
+  hint: See "/var/log/cloud-init-output.log" in the guest
+portForwards:
+- guestSocket: "/run/user/{{.UID}}/nerdctl.sock"
+  hostSocket: "{{.Dir}}/sock/nerdctl.sock"
+message: |
+  To run `docker` on the host (assumes docker-cli is installed), run the following commands:
+  ------
+  export DOCKER_HOST=unix://{{.Dir}}/sock/nerdctl.sock
+  docker version
+  ------

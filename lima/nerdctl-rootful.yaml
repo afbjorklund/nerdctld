@@ -1,0 +1,58 @@
+# This example requires Lima v0.8.0 or later
+images:
+- location: "https://cloud-images.ubuntu.com/releases/22.10/release/ubuntu-22.10-server-cloudimg-amd64.img"
+  arch: "x86_64"
+- location: "https://cloud-images.ubuntu.com/releases/22.10/release/ubuntu-22.10-server-cloudimg-arm64.img"
+  arch: "aarch64"
+
+mounts:
+- location: "~"
+- location: "/tmp/lima"
+  writable: true
+containerd:
+  system: true
+  user: false
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    command -v nerdctld >/dev/null 2>&1 && exit 0
+    if [ ! -e /etc/systemd/system/nerdctl.socket.d/override.conf ]; then
+      mkdir -p /etc/systemd/system/nerdctl.socket.d
+      cat <<-EOF >/etc/systemd/system/nerdctl.socket.d/override.conf
+      [Socket]
+      SocketUser=${LIMA_CIDATA_USER}
+    EOF
+    fi
+    NAME=nerdctld
+    VERSION=0.2.1
+    case $(uname -m) in
+      x86_64)   DEBARCH=amd64;;
+      aarch64)  DEBARCH=arm64;;
+    esac
+    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}_${VERSION}_${DEBARCH}.deb
+    dpkg -i ${NAME}_${VERSION}_${DEBARCH}.deb
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    systemctl --system enable --now nerdctl.socket
+probes:
+- script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    if ! timeout 30s bash -c "until command -v nerdctld >/dev/null 2>&1; do sleep 3; done"; then
+      echo >&2 "nerdctld is not installed yet"
+      exit 1
+    fi
+  hint: See "/var/log/cloud-init-output.log" in the guest
+portForwards:
+- guestSocket: "/var/run/nerdctl.sock"
+  hostSocket: "{{.Dir}}/sock/nerdctl.sock"
+message: |
+  To run `docker` on the host (assumes docker-cli is installed), run the following commands:
+  ------
+  export DOCKER_HOST=unix://{{.Dir}}/sock/nerdctl.sock
+  docker version
+  ------

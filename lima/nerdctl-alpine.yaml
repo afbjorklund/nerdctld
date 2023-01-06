@@ -1,0 +1,72 @@
+# This example requires Lima v0.8.0 or later
+images:
+- location: "https://github.com/lima-vm/alpine-lima/releases/download/v0.2.26/alpine-lima-std-3.17.0-x86_64.iso"
+  arch: "x86_64"
+  digest: "sha512:93bf8d52ad2b3a6ef401a1a565f67e4f06f8022ec8963cad36cac4a25253f056ac0b755d1ed56b8993b0261440e0d5d38bad15b271864ed33cd3b02272738672"
+- location: "https://github.com/lima-vm/alpine-lima/releases/download/v0.2.26/alpine-lima-std-3.17.0-aarch64.iso"
+  arch: "aarch64"
+  digest: "sha512:aacd3a9e7a3231553bcee879c6770b379afbfad3dcfac7f274a80d6c490faf33f3c23b6130efa881f57c0c5235ced2877e2f45e3cdf4fefff11531d6023ae214"
+
+mounts:
+- location: "~"
+- location: "/tmp/lima"
+  writable: true
+# The built-in containerd installer does not support Alpine currently.
+containerd:
+  system: false
+  user: false
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    command -v nerdctl >/dev/null 2>&1 && exit 0
+    apk add nerdctl containerd buildctl buildkit tini
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    rc-update add containerd boot
+    service containerd start
+    rc-update add buildkitd boot
+    service buildkitd start
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    command -v nerdctld >/dev/null 2>&1 && exit 0
+    NAME=nerdctld
+    VERSION=0.2.1
+    GOOS=linux
+    case $(uname -m) in
+      x86_64)   GOARCH=amd64;;
+      aarch64)  GOARCH=arm64;;
+    esac
+    wget -nv https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}-${VERSION}-${GOOS}-${GOARCH}.tar.gz
+    tar -C /usr/bin -xzf ${NAME}-${VERSION}-${GOOS}-${GOARCH}.tar.gz nerdctld
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    nerdctld --socket /var/run/nerdctl.sock &
+    sleep 1
+    chmod 0660 /var/run/nerdctl.sock
+    chown ${LIMA_CIDATA_USER} /var/run/nerdctl.sock
+probes:
+- script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    if ! timeout 30s bash -c "until command -v nerdctld >/dev/null 2>&1; do sleep 3; done"; then
+      echo >&2 "nerdctld is not installed yet"
+      exit 1
+    fi
+  hint: See "/var/log/cloud-init-output.log" in the guest
+portForwards:
+- guestSocket: "/var/run/nerdctl.sock"
+  hostSocket: "{{.Dir}}/sock/nerdctl.sock"
+message: |
+  To run `docker` on the host (assumes docker-cli is installed), run the following commands:
+  ------
+  export DOCKER_HOST=unix://{{.Dir}}/sock/nerdctl.sock
+  docker version
+  ------
