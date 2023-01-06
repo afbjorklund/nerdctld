@@ -4,7 +4,7 @@
 #
 name: "nerdctld"
 arch: "${GOARCH}"
-platform: "${GOOS}"
+#platform: "${GOOS}"
 version: "${VERSION}"
 section: "default"
 priority: "extra"
