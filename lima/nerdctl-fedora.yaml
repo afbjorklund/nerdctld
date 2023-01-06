@@ -24,8 +24,8 @@ provision:
       x86_64)   RPMARCH=x86_64;;
       aarch64)  RPMARCH=aarch64;;
     esac
-    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}-${VERSION}.${RPMARCH}.rpm
-    rpm -i ${NAME}-${VERSION}.${RPMARCH}.rpm
+    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}-${VERSION}-1.${RPMARCH}.rpm
+    rpm -i ${NAME}-${VERSION}-1.${RPMARCH}.rpm
 - mode: user
   script: |
     #!/bin/bash
