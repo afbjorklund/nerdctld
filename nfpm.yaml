@@ -6,6 +6,7 @@ name: "nerdctld"
 arch: "${GOARCH}"
 #platform: "${GOOS}"
 version: "${VERSION}"
+release: 1
 section: "default"
 priority: "extra"
 rpm:
