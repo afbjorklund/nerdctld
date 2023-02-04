@@ -170,7 +170,7 @@ type Platform struct {
 }
 
 func nerdctlPlatform() Platform {
-	return Platform{Name: ""}
+	return Platform{Name: "\U0001f913"}
 }
 
 type ComponentVersion struct {
