@@ -108,14 +108,16 @@ func runcVersion() (string, map[string]string) {
 func tiniVersion() (string, map[string]string) {
 	nv, err := exec.Command("tini", "--version").Output()
 	if err != nil {
-		log.Fatal(err)
-	}
-	l := strings.Split(string(nv), "\n")
-	if len(l) == 0 {
+		// tini is optional (--init-binary)
 		return "", nil
 	}
-	// tini version Version
-	v := strings.Replace(l[0], "tini version ", "", 1)
+	v := strings.TrimSuffix(string(nv), "\n")
+	// tini version Version - git.da39a3e
+	v = strings.Replace(v, "tini version ", "", 1)
+	c := strings.SplitN(v, " ", 3)
+	if len(c) == 3 && c[1] == "-" {
+		v = c[0]
+	}
 	return v, nil
 }
 
