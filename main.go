@@ -102,6 +102,13 @@ func runcVersion() (string, map[string]string) {
 	}
 	// runc version Version
 	v := strings.Replace(l[0], "runc version ", "", 1)
+	if len(l) > 1 && strings.HasPrefix(l[1], "commit: ") {
+		s := strings.Replace(l[1], "commit: ", "", 1)
+		if strings.Contains(s, "g") {
+			s = strings.Split(s, "g")[1]
+		}
+		return v, map[string]string{"GitCommit": s}
+	}
 	return v, nil
 }
 
@@ -117,6 +124,8 @@ func tiniVersion() (string, map[string]string) {
 	c := strings.SplitN(v, " ", 3)
 	if len(c) == 3 && c[1] == "-" {
 		v = c[0]
+		s := strings.Replace(c[2], "git.", "", 1)
+		return v, map[string]string{"GitCommit": s}
 	}
 	return v, nil
 }
