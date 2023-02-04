@@ -648,7 +648,6 @@ func setupRouter() *gin.Engine {
 
 	r.GET("/:ver/version", func(c *gin.Context) {
 		apiver := c.Param("ver")
-		log.Printf("api: %s", apiver)
 		var ver struct {
 			Platform   struct{ Name string } `json:",omitempty"`
 			Components []ComponentVersion    `json:",omitempty"`
