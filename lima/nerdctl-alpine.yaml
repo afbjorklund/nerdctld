@@ -53,7 +53,8 @@ provision:
     chmod 0660 /var/run/nerdctl.sock
     chown ${LIMA_CIDATA_USER} /var/run/nerdctl.sock
 probes:
-- script: |
+- description: "nerdctld to be installed"
+  script: |
     #!/bin/bash
     set -eux -o pipefail
     if ! timeout 30s bash -c "until command -v nerdctld >/dev/null 2>&1; do sleep 3; done"; then

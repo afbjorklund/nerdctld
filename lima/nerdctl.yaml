@@ -32,7 +32,8 @@ provision:
     set -eux -o pipefail
     systemctl --user enable --now nerdctl.socket
 probes:
-- script: |
+- description: "nerdctld to be installed"
+  script: |
     #!/bin/bash
     set -eux -o pipefail
     if ! timeout 30s bash -c "until command -v nerdctld >/dev/null 2>&1; do sleep 3; done"; then
