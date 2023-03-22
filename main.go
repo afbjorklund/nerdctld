@@ -344,6 +344,26 @@ func nerdctlContainer(name string) (map[string]interface{}, error) {
 	return image, nil
 }
 
+func nerdctlVolumes() []map[string]interface{} {
+	args := []string{"volume", "ls"}
+	args = append(args, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var volumes []map[string]interface{}
+	scanner := bufio.NewScanner(bytes.NewReader(nc))
+	for scanner.Scan() {
+		var volume map[string]interface{}
+		err = json.Unmarshal(scanner.Bytes(), &volume)
+		if err != nil {
+			log.Fatal(err)
+		}
+		volumes = append(volumes, volume)
+	}
+	return volumes
+}
+
 func unixTime(s string) int64 {
 	t, err := time.Parse("2006-01-02 15:04:05 -0700 MST", s)
 	if err != nil {
@@ -1010,6 +1030,30 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, container)
+	})
+
+	r.GET("/:ver/volumes", func(c *gin.Context) {
+		type vol struct {
+			Driver     string
+			Labels     map[string]string
+			Mountpoint string
+			Name       string
+			Options    map[string]string
+			Scope      string
+		}
+		vols := []vol{}
+		volumes := nerdctlVolumes()
+		for _, volume := range volumes {
+			var vol vol
+			vol.Name = volume["Name"].(string)
+			vol.Driver = volume["Driver"].(string)
+			vol.Scope = volume["Scope"].(string)
+			vol.Mountpoint = volume["Mountpoint"].(string)
+			vols = append(vols, vol)
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		data := map[string]interface{}{"Volumes": vols, "Warnings": []string{}}
+		c.JSON(http.StatusOK, data)
 	})
 
 	r.GET("/:ver/system/df", func(c *gin.Context) {

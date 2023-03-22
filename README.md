@@ -205,6 +205,7 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * rmi (image rm)
 * save (image save)
 * tag (image tag)
+* volumes (volume ls)
 * build
 
 Note: using "build" requires the `buildctl` client.
