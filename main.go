@@ -344,8 +344,30 @@ func nerdctlContainer(name string) (map[string]interface{}, error) {
 	return image, nil
 }
 
-func nerdctlVolumes() []map[string]interface{} {
+func parseVolumeFilter(param []byte) string {
+	if len(param) == 0 {
+		return ""
+	}
+	// filters: {"name":{"vol":true}}
+	var filters map[string]map[string]interface{}
+	err := json.Unmarshal(param, &filters)
+	if err != nil {
+		log.Fatal(err)
+	}
+	filter := ""
+	for key, ref := range filters {
+		for val := range ref {
+			filter += fmt.Sprintf("%s=%s", key, val)
+		}
+	}
+	return filter
+}
+
+func nerdctlVolumes(filter string) []map[string]interface{} {
 	args := []string{"volume", "ls"}
+	if filter != "" {
+		args = append(args, "--filter", filter)
+	}
 	args = append(args, "--format", "{{json .}}")
 	nc, err := exec.Command("nerdctl", args...).Output()
 	if err != nil {
@@ -1033,6 +1055,8 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/:ver/volumes", func(c *gin.Context) {
+		filters := c.Query("filters")
+		filter := parseVolumeFilter([]byte(filters))
 		type vol struct {
 			Driver     string
 			Labels     map[string]string
@@ -1042,7 +1066,7 @@ func setupRouter() *gin.Engine {
 			Scope      string
 		}
 		vols := []vol{}
-		volumes := nerdctlVolumes()
+		volumes := nerdctlVolumes(filter)
 		for _, volume := range volumes {
 			var vol vol
 			vol.Name = volume["Name"].(string)
