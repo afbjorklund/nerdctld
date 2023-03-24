@@ -696,6 +696,9 @@ func setupRouter() *gin.Engine {
 			Path string   `json:"path"`
 			Args []string `json:"runtimeArgs,omitempty"`
 		}
+		type swarm struct {
+			LocalNodeState string
+		}
 		var inf struct {
 			ID                string
 			Containers        int
@@ -748,7 +751,7 @@ func setupRouter() *gin.Engine {
 			SecurityOptions   []string
 			Runtimes          map[string]runtime
 			DefaultRuntime    string
-			//Swarm              swarm.Info
+			Swarm             swarm
 			// LiveRestoreEnabled determines whether containers should be kept
 			// running when the daemon is shutdown or upon daemon start if
 			// running containers are detected
@@ -784,6 +787,7 @@ func setupRouter() *gin.Engine {
 		inf.ExperimentalBuild = true
 		inf.DefaultRuntime = "runc"
 		inf.Runtimes = map[string]runtime{"runc": {Path: "runc"}}
+		inf.Swarm = swarm{LocalNodeState: "inactive"}
 		inf.InitBinary = "tini"
 		inf.SecurityOptions = stringArray(info["SecurityOptions"].([]interface{}))
 		c.Writer.Header().Set("Content-Type", "application/json")
