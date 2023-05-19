@@ -631,6 +631,9 @@ func stringArray(options []interface{}) []string {
 // regular expression for slashes-in-parameter workaround
 var reImagesPush = regexp.MustCompile(`^/(?P<ver>.*)/images/(?P<name>.*)/push$`)
 
+// regular expression for starting version number in url
+var reApiVersion = regexp.MustCompile(`^/(?P<ver>[0-9][.][0-9]+)/.*$`)
+
 const CurrentAPIVersion = "1.40" // 19.03
 const MinimumAPIVersion = "1.24" // 1.12
 
@@ -1088,6 +1091,10 @@ func setupRouter() *gin.Engine {
 				return
 			}
 			c.Status(http.StatusOK)
+		}
+		// some clients don't negotiate for the API version, before commands
+		if m := reApiVersion.FindStringSubmatch(c.Request.URL.Path); m == nil {
+			c.Redirect(http.StatusFound, "/" + CurrentAPIVersion + "/" + c.Request.URL.Path)
 		}
 	})
 
