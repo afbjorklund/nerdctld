@@ -679,6 +679,7 @@ var reApiVersion = regexp.MustCompile(`^/(?P<ver>[0-9][.][0-9]+)/.*$`)
 const CurrentAPIVersion = "1.40" // 19.03
 const MinimumAPIVersion = "1.24" // 1.12
 
+//nolint:gocyclo // Handles all the routing in one place
 func setupRouter() *gin.Engine {
 
 	r := gin.Default()
