@@ -1,10 +1,11 @@
 # This example requires Lima v0.8.0 or later
 images:
-- location: "https://download.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/x86_64/images/Fedora-Cloud-Base-37-1.7.x86_64.qcow2"
+- location: "https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/x86_64/images/Fedora-Cloud-Base-38-1.6.x86_64.qcow2"
   arch: "x86_64"
-- location: "https://download.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images/Fedora-Cloud-Base-37-1.7.aarch64.qcow2"
+  digest: "sha256:d334670401ff3d5b4129fcc662cf64f5a6e568228af59076cc449a4945318482"
+- location: "https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/aarch64/images/Fedora-Cloud-Base-38-1.6.aarch64.qcow2"
   arch: "aarch64"
-
+  digest: "sha256:ad71d22104a16e4f9efa93e61e8c7bce28de693f59c802586abbe85e9db55a65"
 mounts:
 - location: "~"
 - location: "/tmp/lima"
@@ -19,13 +20,13 @@ provision:
     set -eux -o pipefail
     command -v nerdctld >/dev/null 2>&1 && exit 0
     NAME=nerdctld
-    VERSION=0.2.1
+    VERSION=0.3.0
     case $(uname -m) in
       x86_64)   RPMARCH=x86_64;;
       aarch64)  RPMARCH=aarch64;;
     esac
-    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}-${VERSION}-1.${RPMARCH}.rpm
-    rpm -i ${NAME}-${VERSION}-1.${RPMARCH}.rpm
+    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}-${VERSION}.${RPMARCH}.rpm
+    rpm -i ${NAME}-${VERSION}.${RPMARCH}.rpm
 - mode: user
   script: |
     #!/bin/bash
