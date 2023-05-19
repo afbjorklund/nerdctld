@@ -1058,13 +1058,20 @@ func setupRouter() *gin.Engine {
 	r.GET("/:ver/volumes", func(c *gin.Context) {
 		filters := c.Query("filters")
 		filter := parseVolumeFilter([]byte(filters))
+		type ud struct {
+			RefCount int64 `json:"RefCount"`
+			Size     int64 `json:"Size"`
+		}
 		type vol struct {
+			CreatedAt  string `json:",omitempty"`
 			Driver     string
 			Labels     map[string]string
 			Mountpoint string
 			Name       string
 			Options    map[string]string
 			Scope      string
+			Status     map[string]interface{} `json:",omitempty"`
+			UsageData  *ud                    `json:",omitempty"`
 		}
 		vols := []vol{}
 		volumes := nerdctlVolumes(filter)
