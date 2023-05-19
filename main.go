@@ -1006,6 +1006,28 @@ func setupRouter() *gin.Engine {
 		c.JSON(http.StatusOK, container)
 	})
 
+	r.GET("/:ver/system/df", func(c *gin.Context) {
+		type DiskUsage struct {
+			LayersSize  int64
+			Images      []interface{} // *ImageSummary
+			Containers  []interface{} // *Container
+			Volumes     []interface{}
+			BuildCache  []interface{}
+			BuilderSize int64
+		}
+		var du DiskUsage
+		for i, _ := range nerdctlImages("") {
+			// TODO: du.Images = append(du.Images, ...)
+			_ = i
+		}
+		for c, _ := range nerdctlContainers(true) {
+			// TODO: du.Containers = append(du.Containers, ...)
+			_ = c
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, du)
+	})
+
 	r.POST("/:ver/build", func(c *gin.Context) {
 		contentType := c.Request.Header.Get("Content-Type")
 		if contentType != "application/tar" && contentType != "application/x-tar" {
