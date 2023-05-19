@@ -1094,7 +1094,8 @@ func setupRouter() *gin.Engine {
 		}
 		// some clients don't negotiate for the API version, before commands
 		if m := reApiVersion.FindStringSubmatch(c.Request.URL.Path); m == nil {
-			c.Redirect(http.StatusFound, "/" + CurrentAPIVersion + "/" + c.Request.URL.Path)
+			c.Request.URL.Path = "/" + CurrentAPIVersion + c.Request.URL.Path
+			r.HandleContext(c)
 		}
 	})
 
