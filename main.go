@@ -631,6 +631,9 @@ func stringArray(options []interface{}) []string {
 // regular expression for slashes-in-parameter workaround
 var reImagesPush = regexp.MustCompile(`^/(?P<ver>.*)/images/(?P<name>.*)/push$`)
 
+const CurrentAPIVersion = "1.40" // 19.03
+const MinimumAPIVersion = "1.24" // 1.12
+
 func setupRouter() *gin.Engine {
 
 	r := gin.Default()
@@ -643,7 +646,7 @@ func setupRouter() *gin.Engine {
 	r.HEAD("/_ping", func(c *gin.Context) {
 		c.Writer.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
 		c.Writer.Header().Add("Pragma", "no-cache")
-		c.Writer.Header().Set("API-Version", "1.40")
+		c.Writer.Header().Set("API-Version", CurrentAPIVersion)
 		c.Writer.Header().Set("Content-Length", "0")
 		c.Status(http.StatusOK)
 	})
@@ -651,7 +654,7 @@ func setupRouter() *gin.Engine {
 	r.GET("/_ping", func(c *gin.Context) {
 		c.Writer.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
 		c.Writer.Header().Add("Pragma", "no-cache")
-		c.Writer.Header().Set("API-Version", "1.24")
+		c.Writer.Header().Set("API-Version", MinimumAPIVersion)
 		c.Writer.Header().Set("Content-Type", "text/plain")
 		c.String(http.StatusOK, "OK")
 	})
@@ -676,8 +679,8 @@ func setupRouter() *gin.Engine {
 		version := nerdctlVer()
 		client := version["Client"].(map[string]interface{})
 		ver.Version, _ = nerdctlVersion()
-		ver.APIVersion = "1.40"
-		ver.MinAPIVersion = "1.24"
+		ver.APIVersion = CurrentAPIVersion
+		ver.MinAPIVersion = MinimumAPIVersion
 		ver.GitCommit = client["GitCommit"].(string)
 		ver.GoVersion = client["GoVersion"].(string)
 		ver.Os = client["Os"].(string)
