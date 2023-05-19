@@ -1022,11 +1022,11 @@ func setupRouter() *gin.Engine {
 			BuilderSize int64
 		}
 		var du DiskUsage
-		for i, _ := range nerdctlImages("") {
+		for i := range nerdctlImages("") {
 			// TODO: du.Images = append(du.Images, ...)
 			_ = i
 		}
-		for c, _ := range nerdctlContainers(true) {
+		for c := range nerdctlContainers(true) {
 			// TODO: du.Containers = append(du.Containers, ...)
 			_ = c
 		}
