@@ -1025,7 +1025,7 @@ func setupRouter() *gin.Engine {
 				NetworkMode string `json:",omitempty"`
 			}
 			//NetworkSettings *SummaryNetworkSettings
-			//Mounts          []MountPoint
+			Mounts []interface{} // MountPoint
 		}
 		ctrs := []ctr{}
 		containers := nerdctlContainers(all == "1")
@@ -1037,6 +1037,7 @@ func setupRouter() *gin.Engine {
 			ctr.Command = strings.Trim(container["Command"].(string), "\"")
 			ctr.Created = unixTime(container["CreatedAt"].(string))
 			ctr.Status = container["Status"].(string)
+			ctr.Mounts = make([]interface{}, 0)
 			ctrs = append(ctrs, ctr)
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
@@ -1090,13 +1091,20 @@ func setupRouter() *gin.Engine {
 			BuilderSize int64
 		}
 		var du DiskUsage
+		du.Images = make([]interface{}, 0)
 		for i := range nerdctlImages("") {
 			// TODO: du.Images = append(du.Images, ...)
 			_ = i
 		}
+		du.Containers = make([]interface{}, 0)
 		for c := range nerdctlContainers(true) {
 			// TODO: du.Containers = append(du.Containers, ...)
 			_ = c
+		}
+		du.Volumes = make([]interface{}, 0)
+		for v := range nerdctlVolumes("") {
+			// TODO: du.Volumes = append(du.Volumes, ...)
+			_ = v
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, du)
