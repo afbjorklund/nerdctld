@@ -386,6 +386,21 @@ func nerdctlVolumes(filter string) []map[string]interface{} {
 	return volumes
 }
 
+func nerdctlVolume(name string) (map[string]interface{}, error) {
+	args := []string{"volume", "inspect"}
+	args = append(args, name, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return nil, err
+	}
+	var volume map[string]interface{}
+	err = json.Unmarshal(nc, &volume)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return volume, nil
+}
+
 func unixTime(s string) int64 {
 	t, err := time.Parse("2006-01-02 15:04:05 -0700 MST", s)
 	if err != nil {
@@ -1087,6 +1102,17 @@ func setupRouter() *gin.Engine {
 		c.Writer.Header().Set("Content-Type", "application/json")
 		data := map[string]interface{}{"Volumes": vols, "Warnings": []string{}}
 		c.JSON(http.StatusOK, data)
+	})
+
+	r.GET("/:ver/volumes/:name", func(c *gin.Context) {
+		name := c.Param("name")
+		volume, err := nerdctlVolume(name)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusNotFound)
+			return
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, volume)
 	})
 
 	r.GET("/:ver/system/df", func(c *gin.Context) {
