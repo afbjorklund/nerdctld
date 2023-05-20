@@ -22,6 +22,7 @@ The Docker API (REST) is available at:
 
 Docker version | API version
 --- | ---
+24.0 | 1.43
 23.0 | 1.42
 ... | ...
 20.10 | 1.41
