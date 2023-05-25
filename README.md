@@ -6,6 +6,10 @@ This is a daemon offering a `nerdctl.sock` endpoint.
 
 It can be used with `DOCKER_HOST=unix://nerdctl.sock`.
 
+| :exclamation: Currently it mostly handles the images, for containerd k8s clusters. |
+|----------------------------------------------------------------------------------- |
+| There is some limited information about version and info, containers and volumes.  |
+
 Normally the `nerdctl` tool is a CLI-only application.
 
 A client for the `containerd` and `buildkitd` servers.
