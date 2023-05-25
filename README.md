@@ -44,9 +44,25 @@ Docker version | API version
 
 ## Debugging
 
+To start the nerdctl daemon in debugging mode:
+
+```
+./nerdctld --debug
+```
+
+In another shell, you can communicate with it:
+
+```
+DOCKER_HOST=unix://nerdctl.sock docker version
+```
+
 You can use cURL for talking HTTP to a Unix socket:
 
 `curl --unix-socket /var/run/docker.sock http://localhost:2375/_ping`
+
+This can be useful to see what happens under the hood.
+
+Note: replace the socket path, with the one you want.
 
 ## Running daemon
 
