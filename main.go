@@ -1165,6 +1165,27 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/:ver/system/df", func(c *gin.Context) {
+		type image struct {
+			ID   string `json:"Id"`
+			Size int64
+		}
+		type container struct {
+			ID         string `json:"Id"`
+			SizeRw     int64  `json:",omitempty"`
+			SizeRootFs int64  `json:",omitempty"`
+		}
+		type UsageData struct {
+			RefCount int64
+			Size     int64
+		}
+		type volume struct {
+			Name      string
+			UsageData *UsageData
+		}
+		type buildcache struct {
+			ID   string
+			Size int64
+		}
 		type DiskUsage struct {
 			LayersSize  int64
 			Images      []interface{} // *ImageSummary
@@ -1175,24 +1196,20 @@ func setupRouter() *gin.Engine {
 		}
 		var du DiskUsage
 		du.Images = make([]interface{}, 0)
-		for i := range nerdctlImages("") {
-			// TODO: du.Images = append(du.Images, ...)
-			_ = i
+		for _, i := range nerdctlImages("") {
+			du.Images = append(du.Images, &image{ID: i["ID"].(string), Size: 0})
 		}
 		du.Containers = make([]interface{}, 0)
-		for c := range nerdctlContainers(true) {
-			// TODO: du.Containers = append(du.Containers, ...)
-			_ = c
+		for _, c := range nerdctlContainers(true) {
+			du.Containers = append(du.Containers, &container{ID: c["ID"].(string), SizeRw: 0, SizeRootFs: 0})
 		}
 		du.Volumes = make([]interface{}, 0)
-		for v := range nerdctlVolumes("") {
-			// TODO: du.Volumes = append(du.Volumes, ...)
-			_ = v
+		for _, v := range nerdctlVolumes("") {
+			du.Volumes = append(du.Volumes, &volume{Name: v["Name"].(string), UsageData: &UsageData{-1, -1}})
 		}
 		du.BuildCache = make([]interface{}, 0)
-		for r := range nerdctlBuildCache() {
-			// TODO: du.BuildCache = append(du.BuildCache, ...)
-			_ = r
+		for _, r := range nerdctlBuildCache() {
+			du.BuildCache = append(du.BuildCache, &buildcache{ID: r["ID"].(string), Size: 0})
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, du)
