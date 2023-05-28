@@ -644,6 +644,55 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, p string, ba map[
 	return nil
 }
 
+func nerdctlBuildCache() []map[string]interface{} {
+	args := []string{"du"}
+	args = append(args, "--verbose")
+	buildctl := "buildctl"
+	if uid := os.Geteuid(); uid != 0 {
+		buildctl = "rootlesskit"
+		dir := os.Getenv("XDG_RUNTIME_DIR")
+		if dir == "" {
+			dir = fmt.Sprintf("/run/user/%d", uid)
+		}
+		address := "unix://" + dir + "/buildkit/buildkitd.sock"
+		args = append([]string{"buildctl", "--addr", address}, args...)
+	}
+	nc, err := exec.Command(buildctl, args...).Output()
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+	var records []map[string]interface{}
+	var record = make(map[string]interface{})
+	scanner := bufio.NewScanner(bytes.NewReader(nc))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if len(record) > 0 && (strings.HasPrefix(line, "ID") || strings.HasPrefix(line, "Total")) {
+			records = append(records, record)
+			record = make(map[string]interface{})
+		}
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			continue
+		}
+		switch strings.TrimSuffix(fields[0], ":") {
+		case "ID":
+			record["ID"] = fields[1]
+		case "Reclaimable":
+			if reclaimable, err := strconv.ParseBool(fields[1]); err == nil {
+				record["InUse"] = !reclaimable
+			}
+		case "Shared":
+			if shared, err := strconv.ParseBool(fields[1]); err == nil {
+				record["Shared"] = shared
+			}
+		case "Size":
+			record["Size"] = fields[1]
+		}
+	}
+	return records
+}
+
 func extractTar(dst string, r io.Reader) error {
 	tr := tar.NewReader(r)
 	for {
@@ -1120,8 +1169,8 @@ func setupRouter() *gin.Engine {
 			LayersSize  int64
 			Images      []interface{} // *ImageSummary
 			Containers  []interface{} // *Container
-			Volumes     []interface{}
-			BuildCache  []interface{}
+			Volumes     []interface{} // *volume.Volume
+			BuildCache  []interface{} // *BuildCache
 			BuilderSize int64
 		}
 		var du DiskUsage
@@ -1139,6 +1188,11 @@ func setupRouter() *gin.Engine {
 		for v := range nerdctlVolumes("") {
 			// TODO: du.Volumes = append(du.Volumes, ...)
 			_ = v
+		}
+		du.BuildCache = make([]interface{}, 0)
+		for r := range nerdctlBuildCache() {
+			// TODO: du.BuildCache = append(du.BuildCache, ...)
+			_ = r
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, du)
