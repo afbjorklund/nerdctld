@@ -647,17 +647,15 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, p string, ba map[
 func nerdctlBuildCache() []map[string]interface{} {
 	args := []string{"du"}
 	args = append(args, "--verbose")
-	buildctl := "buildctl"
 	if uid := os.Geteuid(); uid != 0 {
-		buildctl = "rootlesskit"
 		dir := os.Getenv("XDG_RUNTIME_DIR")
 		if dir == "" {
 			dir = fmt.Sprintf("/run/user/%d", uid)
 		}
 		address := "unix://" + dir + "/buildkit/buildkitd.sock"
-		args = append([]string{"buildctl", "--addr", address}, args...)
+		args = append([]string{"--addr", address}, args...)
 	}
-	nc, err := exec.Command(buildctl, args...).Output()
+	nc, err := exec.Command("buildctl", args...).Output()
 	if err != nil {
 		log.Print(err)
 		return nil
