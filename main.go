@@ -1177,6 +1177,7 @@ func setupRouter() *gin.Engine {
 			Size     int64
 		}
 		type volume struct {
+			CreatedAt string `json:",omitempty"`
 			Name      string
 			UsageData *ud
 		}
