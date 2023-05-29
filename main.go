@@ -644,15 +644,46 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, p string, ba map[
 	return nil
 }
 
+func isUnixSocket(path string) bool {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return fi.Mode().Type() == os.ModeSocket
+}
+
+func buildkitSocket(dir string, namespace string) string {
+	socks := []string{}
+	sock := "buildkitd.sock"
+	if namespace != "default" {
+		subdir := fmt.Sprintf("buildkit-%s", namespace)
+		socks = append(socks, filepath.Join(dir, subdir, sock))
+	}
+	socks = append(socks, filepath.Join(dir, "buildkit-default", sock))
+	for _, s := range socks {
+		if isUnixSocket(s) {
+			return s
+		}
+	}
+	return filepath.Join(dir, "buildkit", sock)
+}
+
 func nerdctlBuildCache() []map[string]interface{} {
 	args := []string{"du"}
 	args = append(args, "--verbose")
+	address := os.Getenv("BUILDKIT_HOST")
 	if uid := os.Geteuid(); uid != 0 {
 		dir := os.Getenv("XDG_RUNTIME_DIR")
 		if dir == "" {
 			dir = fmt.Sprintf("/run/user/%d", uid)
 		}
-		address := "unix://" + dir + "/buildkit/buildkitd.sock"
+		ns := os.Getenv("CONTAINERD_NAMESPACE")
+		if ns == "" {
+			ns = "default"
+		}
+		if address == "" {
+			address = "unix://" + buildkitSocket(dir, ns)
+		}
 		args = append([]string{"--addr", address}, args...)
 	}
 	nc, err := exec.Command("buildctl", args...).Output()
