@@ -1172,13 +1172,13 @@ func setupRouter() *gin.Engine {
 			SizeRw     int64  `json:",omitempty"`
 			SizeRootFs int64  `json:",omitempty"`
 		}
-		type UsageData struct {
+		type ud struct {
 			RefCount int64
 			Size     int64
 		}
 		type volume struct {
 			Name      string
-			UsageData *UsageData
+			UsageData *ud
 		}
 		type buildcache struct {
 			ID   string
@@ -1203,7 +1203,7 @@ func setupRouter() *gin.Engine {
 		}
 		du.Volumes = make([]interface{}, 0)
 		for _, v := range nerdctlVolumes("") {
-			du.Volumes = append(du.Volumes, &volume{Name: v["Name"].(string), UsageData: &UsageData{-1, -1}})
+			du.Volumes = append(du.Volumes, &volume{Name: v["Name"].(string), UsageData: &ud{RefCount: -1, Size: 0}})
 		}
 		du.BuildCache = make([]interface{}, 0)
 		for _, r := range nerdctlBuildCache() {
