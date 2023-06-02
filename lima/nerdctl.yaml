@@ -19,7 +19,7 @@ provision:
     set -eux -o pipefail
     command -v nerdctld >/dev/null 2>&1 && exit 0
     NAME=nerdctld
-    VERSION=0.3.0
+    VERSION=0.3.1
     case $(uname -m) in
       x86_64)   DEBARCH=amd64;;
       aarch64)  DEBARCH=arm64;;
