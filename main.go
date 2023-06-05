@@ -306,6 +306,13 @@ func nerdctlTag(source string, target string) error {
 	return nil
 }
 
+func getState(status string) string {
+	if status == "Up" {
+		return "running"
+	}
+	return ""
+}
+
 func nerdctlContainers(all bool) []map[string]interface{} {
 	args := []string{"ps"}
 	if all {
@@ -1130,6 +1137,7 @@ func setupRouter() *gin.Engine {
 			ctr.Image = container["Image"].(string)
 			ctr.Command = strings.Trim(container["Command"].(string), "\"")
 			ctr.Created = unixTime(container["CreatedAt"].(string))
+			ctr.State = getState(container["Status"].(string))
 			ctr.Status = container["Status"].(string)
 			ctr.Mounts = make([]interface{}, 0)
 			ctrs = append(ctrs, ctr)
