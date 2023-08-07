@@ -724,6 +724,8 @@ func nerdctlBuildCache() []map[string]interface{} {
 			}
 		case "Size":
 			record["Size"] = fields[1]
+		case "Type":
+			record["Type"] = fields[1]
 		}
 	}
 	return records
@@ -1222,6 +1224,7 @@ func setupRouter() *gin.Engine {
 		}
 		type buildcache struct {
 			ID   string
+			Type string
 			Size int64
 		}
 		type DiskUsage struct {
@@ -1247,7 +1250,7 @@ func setupRouter() *gin.Engine {
 		}
 		du.BuildCache = make([]interface{}, 0)
 		for _, r := range nerdctlBuildCache() {
-			du.BuildCache = append(du.BuildCache, &buildcache{ID: r["ID"].(string), Size: 0})
+			du.BuildCache = append(du.BuildCache, &buildcache{ID: r["ID"].(string), Type: r["Type"].(string), Size: 0})
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, du)
