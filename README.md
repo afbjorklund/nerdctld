@@ -325,6 +325,7 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * ps (container ls)
 * inspect (container inspect)
 * logs (container logs)
+* rm (container rm)
 * start (container start)
 * stop (container stop)
 * images (image ls)

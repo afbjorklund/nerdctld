@@ -49,9 +49,10 @@ import (
 var nerdctl = "nerdctl"
 
 type NerdctlContainer struct {
-	ID   string
-	TTY  bool
-	Dead bool
+	ID     string
+	TTY    bool
+	Remove bool
+	Dead   bool
 
 	Cmd *exec.Cmd
 	Out io.ReadCloser
@@ -687,6 +688,10 @@ func nerdctlContainerInspect(id string) []map[string]interface{} {
 	return inspect
 }
 
+func nerdctlRm(id string) error {
+	return exec.Command("nerdctl", "rm", id).Run()
+}
+
 func nerdctlStart(id string) error {
 	return exec.Command("nerdctl", "start", id).Run()
 }
@@ -756,7 +761,7 @@ func byteSize(s string) int64 {
 	return int64(n * m)
 }
 
-func nerdctlRun(name string, w io.Writer, tty bool, command []string, environ []string, volumes []string) (string, error) {
+func nerdctlRun(name string, w io.Writer, rm bool, tty bool, command []string, environ []string, volumes []string) (string, error) {
 	args := []string{"run", "-d"}
 	if tty {
 		args = append(args, "-t")
@@ -775,6 +780,10 @@ func nerdctlRun(name string, w io.Writer, tty bool, command []string, environ []
 		return "", err
 	}
 	id := strings.Trim(string(nc), "\n")
+	containers[id] = NerdctlContainer{
+		ID:     id,
+		Remove: rm,
+	}
 	return id, nil
 }
 
@@ -793,10 +802,11 @@ func nerdctlAttach(id string, w io.Writer) error {
 		return err
 	}
 	containers[id] = NerdctlContainer{
-		ID:  id,
-		Cmd: cmd,
-		Out: stdout,
-		Err: stderr,
+		ID:     id,
+		Remove: containers[id].Remove,
+		Cmd:    cmd,
+		Out:    stdout,
+		Err:    stderr,
 	}
 	return nil
 }
@@ -1778,10 +1788,14 @@ func setupRouter() *gin.Engine {
 			env = create["Env"].([]interface{})
 		}
 		tty := create["Tty"].(bool)
+		var rm bool
 		var binds []interface{}
 		if create["HostConfig"] != nil {
 			hostconfig := create["HostConfig"].(map[string]interface{})
 			if hostconfig != nil {
+				if hostconfig["AutoRemove"] != nil {
+					rm = hostconfig["AutoRemove"].(bool)
+				}
 				if hostconfig["Binds"] != nil {
 					binds = hostconfig["Binds"].([]interface{})
 				}
@@ -1791,6 +1805,7 @@ func setupRouter() *gin.Engine {
 		log.Printf("cmd: %v", cmd)
 		log.Printf("env: %v", env)
 		log.Printf("tty: %v", tty)
+		log.Printf("rm: %v", rm)
 		log.Printf("binds: %v", binds)
 		var container struct {
 			ID       string `json:"Id"`
@@ -1808,7 +1823,7 @@ func setupRouter() *gin.Engine {
 		for _, v := range binds {
 			vols = append(vols, v.(string))
 		}
-		id, err := nerdctlRun(image, c.Writer, tty, cmds, envs, vols)
+		id, err := nerdctlRun(image, c.Writer, rm, tty, cmds, envs, vols)
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
@@ -1958,6 +1973,13 @@ func setupRouter() *gin.Engine {
 		if err != nil {
 			log.Printf("%v", err)
 		}
+		if container.Remove {
+			log.Printf("removing %s", container.ID)
+			err := nerdctlRm(container.ID)
+			if err != nil {
+				log.Printf("%v", err)
+			}
+		}
 
 		wg.Wait()
 	})
@@ -1979,7 +2001,12 @@ func setupRouter() *gin.Engine {
 	r.POST("/:ver/containers/:id/start", func(c *gin.Context) {
 		id := c.Param("id")
 		log.Printf("id: %s", id)
-		//container := containers[id]
+		container := containers[id]
+		// Avoid race with AutoRemove
+		if container.Remove {
+			c.Status(http.StatusOK)
+			return
+		}
 		err := nerdctlStart(id)
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
@@ -1993,6 +2020,21 @@ func setupRouter() *gin.Engine {
 		log.Printf("id: %s", id)
 		//container := containers[id]
 		err := nerdctlStop(id)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
+	})
+
+	r.DELETE("/:ver/containers/*name", func(c *gin.Context) {
+		name := c.Param("name")
+		// handle extra slash from using parameter wildcard
+		if strings.HasPrefix(name, "/") {
+			name = strings.Replace(name, "/", "", 1)
+		}
+		log.Printf("name: %s", name)
+		err := nerdctlRm(name)
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
