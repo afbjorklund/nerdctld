@@ -50,13 +50,13 @@ Docker version | API version
 
 To start the nerdctl daemon in debugging mode:
 
-```
+```shell
 ./nerdctld --debug
 ```
 
 In another shell, you can communicate with it:
 
-```
+```shell
 DOCKER_HOST=unix://nerdctl.sock docker version
 ```
 
@@ -74,6 +74,7 @@ Note: replace the socket path, with the one you want.
 
 ```console
 $ nerdctl version
+...
 ```
 
 `systemctl --user start nerdctl.socket`
@@ -86,6 +87,7 @@ DOCKER_HOST=unix://$XDG_RUNTIME_DIR/nerdctl.sock docker version
 
 ```console
 $ sudo nerdctl version
+...
 ```
 
 `sudo systemctl --system start nerdctl.socket`
@@ -98,7 +100,7 @@ If you wanted to grant all users in the group "nerdctl" access:
 
 /etc/systemd/system/nerdctl.socket.d/10-group.conf
 
-```
+```desktop
 [Socket]
 UMask=0007
 Group=nerdctl
@@ -106,7 +108,7 @@ Group=nerdctl
 
 This would allow access without using `sudo` (or being `root`).
 
-**Warning**
+#### **Warning**
 
 This `nerdctl` group grants privileges equivalent to the `root` user.
 
@@ -121,10 +123,9 @@ To run nerdctl without root privileges, see rootless (user) mode above.
 In order to see the Kubernetes containers and images,
 you will need to change the containerd "namespace":
 
-
 /etc/systemd/system/nerdctl.service.d/10-namespace.conf
 
-```
+```desktop
 [Service]
 Environment=CONTAINERD_NAMESPACE=k8s.io
 ```
@@ -134,7 +135,7 @@ and configure it to talk to the "containerd" runtime:
 
 /etc/crictl.yaml
 
-```
+```yaml
 runtime-endpoint: unix:///run/containerd/containerd.sock
 ```
 
