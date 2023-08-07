@@ -309,7 +309,6 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 
 ## Not implemented yet
 
-* run
 * exec
 
 ## Not to be implemented
@@ -326,6 +325,8 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * ps (container ls)
 * inspect (container inspect)
 * logs (container logs)
+* start (container start)
+* stop (container stop)
 * images (image ls)
 * inspect (image inspect)
 * history (image history)
@@ -339,6 +340,7 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * volume inspect
 * network ls
 * network inspect
+* run
 * build
 
 Note: using "build" requires the `buildctl` client.

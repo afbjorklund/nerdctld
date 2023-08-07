@@ -35,6 +35,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -46,6 +47,29 @@ import (
 )
 
 var nerdctl = "nerdctl"
+
+type NerdctlContainer struct {
+	ID   string
+	TTY  bool
+	Dead bool
+
+	Cmd *exec.Cmd
+	Out io.ReadCloser
+	Err io.ReadCloser
+}
+
+var containers = map[string]NerdctlContainer{}
+
+type NerdctlEvent struct {
+	Status   string
+	ID       string
+	Type     string
+	Action   string
+	Time     int64
+	TimeNano int64
+}
+
+var events = []NerdctlEvent{}
 
 func nerdctlVersion() (string, map[string]string) {
 	nv, err := exec.Command(nerdctl, "--version").Output()
@@ -650,6 +674,27 @@ func nerdctlNetwork(name string) (map[string]interface{}, error) {
 	return network, nil
 }
 
+func nerdctlContainerInspect(id string) []map[string]interface{} {
+	nc, err := exec.Command("nerdctl", "container", "inspect", id).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var inspect []map[string]interface{}
+	err = json.Unmarshal(nc, &inspect)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return inspect
+}
+
+func nerdctlStart(id string) error {
+	return exec.Command("nerdctl", "start", id).Run()
+}
+
+func nerdctlStop(id string) error {
+	return exec.Command("nerdctl", "stop", id).Run()
+}
+
 func unixTime(s string) int64 {
 	i, err := time.Parse("2006-01-02T15:04:05Z", s)
 	if err == nil {
@@ -709,6 +754,51 @@ func byteSize(s string) int64 {
 	}
 
 	return int64(n * m)
+}
+
+func nerdctlRun(name string, w io.Writer, tty bool, command []string, environ []string, volumes []string) (string, error) {
+	args := []string{"run", "-d"}
+	if tty {
+		args = append(args, "-t")
+	}
+	for _, env := range environ {
+		args = append(args, "-e", env)
+	}
+	for _, volume := range volumes {
+		args = append(args, "-v", volume)
+	}
+	args = append(args, name)
+	args = append(args, command...)
+	log.Printf("run: %v\n", args)
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return "", err
+	}
+	id := strings.Trim(string(nc), "\n")
+	return id, nil
+}
+
+func nerdctlAttach(id string, w io.Writer) error {
+	cmd := exec.Command("nerdctl", "logs", "-f", id)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+	containers[id] = NerdctlContainer{
+		ID:  id,
+		Cmd: cmd,
+		Out: stdout,
+		Err: stderr,
+	}
+	return nil
 }
 
 func nerdctlPull(name string, w io.Writer) error {
@@ -1669,6 +1759,245 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, du)
+	})
+
+	r.POST("/:ver/containers/create", func(c *gin.Context) {
+		name := c.Query("name")
+		log.Printf("name: %v", name)
+		var create map[string]interface{}
+		err := c.BindJSON(&create)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Printf("create: %v", create)
+		image := create["Image"].(string)
+		cmd := create["Cmd"].([]interface{})
+		var env []interface{}
+		if create["Env"] != nil {
+			env = create["Env"].([]interface{})
+		}
+		tty := create["Tty"].(bool)
+		var binds []interface{}
+		if create["HostConfig"] != nil {
+			hostconfig := create["HostConfig"].(map[string]interface{})
+			if hostconfig != nil {
+				if hostconfig["Binds"] != nil {
+					binds = hostconfig["Binds"].([]interface{})
+				}
+			}
+		}
+		log.Printf("image: %s", image)
+		log.Printf("cmd: %v", cmd)
+		log.Printf("env: %v", env)
+		log.Printf("tty: %v", tty)
+		log.Printf("binds: %v", binds)
+		var container struct {
+			ID       string `json:"Id"`
+			Warnings []string
+		}
+		cmds := []string{}
+		for _, c := range cmd {
+			cmds = append(cmds, c.(string))
+		}
+		envs := []string{}
+		for _, e := range env {
+			envs = append(envs, e.(string))
+		}
+		vols := []string{}
+		for _, v := range binds {
+			vols = append(vols, v.(string))
+		}
+		id, err := nerdctlRun(image, c.Writer, tty, cmds, envs, vols)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		container.ID = id
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusCreated, container)
+	})
+
+	r.GET("/:ver/events", func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.Status(http.StatusOK)
+		for {
+			if len(events) > 0 {
+				e := events[0]
+				data := map[string]interface{}{
+					"status":   e.Status,
+					"id":       e.ID,
+					"type":     e.Type,
+					"action":   e.Action,
+					"time":     e.Time,
+					"timeNano": e.TimeNano,
+				}
+				l, _ := json.Marshal(data)
+				_, err = c.Writer.Write(l)
+				_, err = c.Writer.Write([]byte{'\n'})
+				events = events[1:]
+			}
+			time.Sleep(1000)
+		}
+	})
+
+	r.POST("/:ver/containers/:id/attach", func(c *gin.Context) {
+		id := c.Param("id")
+		log.Printf("id: %s", id)
+		err := nerdctlAttach(id, c.Writer)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		var attach map[string]interface{}
+		stdout := c.Query("stdout")
+		stderr := c.Query("stderr")
+		stream := c.Query("stream")
+		log.Printf("stdout: %s", stdout)
+		log.Printf("stderr: %s", stderr)
+		log.Printf("stream: %s", stream)
+		err = c.ShouldBindJSON(&attach)
+		if err != nil && err != io.EOF {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		c.Writer.Header().Set("Content-Type", "application/vnd.docker.raw-stream")
+		c.String(http.StatusSwitchingProtocols, "\n")
+		hj, ok := c.Writer.(http.Hijacker)
+		if !ok {
+			http.Error(c.Writer, "webserver doesn't support hijacking", http.StatusInternalServerError)
+			return
+		}
+		conn, bufrw, err := hj.Hijack()
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer conn.Close()
+		container := containers[id]
+		var wg sync.WaitGroup
+		if !container.TTY {
+			const STREAM_STDOUT = 1
+			const STREAM_STDERR = 2
+			wg.Add(2)
+			go func() {
+				reader := bufio.NewReader(container.Out)
+				for !container.Dead {
+					line, err := reader.ReadBytes('\n')
+					if err == io.EOF {
+						continue
+					}
+					if err != nil {
+						break
+					}
+					if len(line) > 0 {
+						l := len(line)
+						header := [8]byte{STREAM_STDOUT, 0, 0, 0, 0, 0, 0, byte(l % 256)}
+						_, err = bufrw.Write(header[:])
+						if err != nil {
+							break
+						}
+						_, err = bufrw.Write(line)
+						if err != nil {
+							break
+						}
+						err = bufrw.Flush()
+						if err != nil {
+							break
+						}
+					}
+				}
+				wg.Done()
+			}()
+			go func() {
+				reader := bufio.NewReader(container.Err)
+				for !container.Dead {
+					line, err := reader.ReadBytes('\n')
+					if err == io.EOF {
+						continue
+					}
+					if err != nil {
+						break
+					}
+					if len(line) > 0 {
+						l := len(line)
+						header := [8]byte{STREAM_STDERR, 0, 0, 0, 0, 0, 0, byte(l % 256)}
+						_, err = bufrw.Write(header[:])
+						if err != nil {
+							break
+						}
+						_, err = bufrw.Write(line)
+						if err != nil {
+							break
+						}
+						err = bufrw.Flush()
+						if err != nil {
+							break
+						}
+					}
+				}
+				wg.Done()
+			}()
+		}
+
+		for {
+			inspect := nerdctlContainerInspect(id)
+			if len(inspect) > 0 && inspect[0]["State"] != nil {
+				state := inspect[0]["State"].(map[string]interface{})
+				log.Printf("state: %v", state)
+				if !state["Running"].(bool) {
+					container.Dead = true
+					break
+				}
+			}
+			time.Sleep(1000)
+		}
+
+		log.Printf("killing log %d (TERM)", container.Cmd.Process.Pid)
+		err = container.Cmd.Process.Signal(syscall.SIGTERM)
+		if err != nil {
+			log.Printf("%v", err)
+		}
+
+		wg.Wait()
+	})
+
+	r.POST("/:ver/containers/:id/wait", func(c *gin.Context) {
+		id := c.Param("id")
+		log.Printf("id: %s", id)
+		inspect := nerdctlContainerInspect(id)
+		exitcode := 0.0
+		if len(inspect) > 0 && inspect[0]["State"] != nil {
+			state := inspect[0]["State"].(map[string]interface{})
+			log.Printf("state: %v", state)
+			exitcode = state["ExitCode"].(float64)
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, map[string]interface{}{"StatusCode": exitcode})
+	})
+
+	r.POST("/:ver/containers/:id/start", func(c *gin.Context) {
+		id := c.Param("id")
+		log.Printf("id: %s", id)
+		//container := containers[id]
+		err := nerdctlStart(id)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
+	})
+
+	r.POST("/:ver/containers/:id/stop", func(c *gin.Context) {
+		id := c.Param("id")
+		log.Printf("id: %s", id)
+		//container := containers[id]
+		err := nerdctlStop(id)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusOK)
 	})
 
 	r.POST("/:ver/build", func(c *gin.Context) {
