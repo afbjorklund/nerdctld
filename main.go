@@ -1223,9 +1223,10 @@ func setupRouter() *gin.Engine {
 			UsageData *ud
 		}
 		type buildcache struct {
-			ID   string
-			Type string
-			Size int64
+			ID     string
+			Type   string
+			Shared bool
+			Size   int64
 		}
 		type DiskUsage struct {
 			LayersSize  int64
@@ -1250,7 +1251,7 @@ func setupRouter() *gin.Engine {
 		}
 		du.BuildCache = make([]interface{}, 0)
 		for _, r := range nerdctlBuildCache() {
-			du.BuildCache = append(du.BuildCache, &buildcache{ID: r["ID"].(string), Type: r["Type"].(string), Size: 0})
+			du.BuildCache = append(du.BuildCache, &buildcache{ID: r["ID"].(string), Type: r["Type"].(string), Shared: r["Shared"].(bool), Size: 0})
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, du)
