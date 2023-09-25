@@ -426,6 +426,10 @@ func nerdctlVolume(name string) (map[string]interface{}, error) {
 }
 
 func unixTime(s string) int64 {
+	i, err := time.Parse("2006-01-02T15:04:05Z", s)
+	if err == nil {
+		return i.Unix()
+	}
 	t, err := time.Parse("2006-01-02 15:04:05 -0700 MST", s)
 	if err != nil {
 		log.Fatal(err)
