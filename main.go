@@ -306,6 +306,23 @@ func nerdctlTag(source string, target string) error {
 	return nil
 }
 
+func maybeArray(any interface{}) []string {
+	if a, ok := any.([]string); ok {
+		return a
+	} else if s, ok := any.(string); ok {
+		return []string{s}
+	}
+	return nil
+}
+
+func addSlash(names []string) []string {
+	result := []string{}
+	for _, name := range names {
+		result = append(result, "/"+name)
+	}
+	return result
+}
+
 func getState(status string) string {
 	if status == "Up" {
 		return "running"
@@ -1135,7 +1152,7 @@ func setupRouter() *gin.Engine {
 		for _, container := range containers {
 			var ctr ctr
 			ctr.ID = container["ID"].(string)
-			ctr.Names = []string{"/" + container["Names"].(string)}
+			ctr.Names = addSlash(maybeArray(container["Names"]))
 			ctr.Image = container["Image"].(string)
 			ctr.Command = strings.Trim(container["Command"].(string), "\"")
 			ctr.Created = unixTime(container["CreatedAt"].(string))
