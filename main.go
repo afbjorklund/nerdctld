@@ -314,7 +314,7 @@ func maybeArray(any interface{}) []string {
 	} else if s, ok := any.(string); ok {
 		return []string{s}
 	}
-	return nil
+	return []string{}
 }
 
 func addSlash(names []string) []string {
