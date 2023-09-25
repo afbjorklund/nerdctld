@@ -935,6 +935,7 @@ func setupRouter() *gin.Engine {
 		info := nerdctlInfo()
 		inf.ID = info["ID"].(string)
 		inf.Containers = len(nerdctlContainers(true))
+		inf.ContainersRunning = len(nerdctlContainers(false))
 		inf.Images = len(nerdctlImages(""))
 		inf.Name = info["Name"].(string)
 		inf.ServerVersion, _ = nerdctlVersion()
