@@ -267,6 +267,8 @@ func nerdctlImage(name string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: handle both one or many
+	nc = bytes.Split(nc, []byte{'\n'})[0]
 	var image map[string]interface{}
 	err = json.Unmarshal(nc, &image)
 	if err != nil {
