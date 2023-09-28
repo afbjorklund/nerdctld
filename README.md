@@ -172,6 +172,64 @@ CONTAINER           IMAGE               CREATED             STATE               
 8b960604e6d29       b09a3dc327be2       About an hour ago   Running             kube-apiserver            0                   669b48948f931       kube-apiserver-lima-k8s
 ```
 
+### Using nerdctld with kind
+
+When using `kind`, it is possible to mount the API socket.
+But it is hard to do it as a regular file, when starting.
+
+What usually happens is that "nerdctl.sock" becomes a dir,
+and then it fails to mount the unix socket (file) over it.
+
+Workaround: Create a subdirectory, to host the socket:
+
+```desktop
+[Socket]
+ListenStream=%t/nerdctl/nerdctl.sock
+```
+
+And then you can mount this directory, in the kind.yaml:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraMounts:
+  - hostPath: /tmp/nerdctl
+    containerPath: /run/nerdctl
+```
+
+Then it can be accessed from the host, using the path:
+
+```bash
+export DOCKER_HOST=unix:///tmp/nerdctl/nerdctl.sock
+```
+
+Make sure to change to the `k8s.io` namespace, see above.
+And to use `DOCKER_BUILDKIT=0` (ironically), if building.
+
+You probably also want to use the "containerd" worker:
+
+/etc/buildkit/buildkitd.toml
+
+```toml
+[worker.oci]
+  enabled = false
+[worker.containerd]
+  enabled = true
+  namespace = "k8s.io"
+```
+
+So that your image is instantly available, without loading.
+
+Note: You _have_ to add a registry prefix, for Kubernetes.
+
+```bash
+DOCKER_BUILDKIT=0 docker build -t docker.io/myimage .
+```
+
+Otherwise, it will not be able to find your image later...
+
 ## Remote socket
 
 Calling the socket over `ssh:` requires a program:
