@@ -26,7 +26,7 @@ provision:
     EOF
     fi
     NAME=nerdctld
-    VERSION=0.3.1
+    VERSION=0.4.0
     case $(uname -m) in
       x86_64)   DEBARCH=amd64;;
       aarch64)  DEBARCH=arm64;;
