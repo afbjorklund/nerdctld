@@ -698,9 +698,8 @@ func buildkitSocket(dir string, namespace string) string {
 	return filepath.Join(dir, "buildkit", sock)
 }
 
-func nerdctlBuildCache() []map[string]interface{} {
-	args := []string{"du"}
-	args = append(args, "--verbose")
+func nerdctlBuildArgs() []string {
+	args := []string{}
 	address := os.Getenv("BUILDKIT_HOST")
 	if uid := os.Geteuid(); uid != 0 {
 		dir := os.Getenv("XDG_RUNTIME_DIR")
@@ -716,6 +715,13 @@ func nerdctlBuildCache() []map[string]interface{} {
 		}
 		args = append([]string{"--addr", address}, args...)
 	}
+	return args
+}
+
+func nerdctlBuildCache() []map[string]interface{} {
+	args := []string{"du"}
+	args = append(args, "--verbose")
+	args = append(args, nerdctlBuildArgs()...)
 	nc, err := exec.Command("buildctl", args...).Output()
 	if err != nil {
 		log.Print(err)
