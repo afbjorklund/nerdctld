@@ -621,7 +621,7 @@ func parseObject(param []byte) map[string]interface{} {
 	return args
 }
 
-func nerdctlBuild(dir string, w io.Writer, t string, f string, p string, ba map[string]interface{}, l map[string]interface{}) error {
+func nerdctlBuild(dir string, w io.Writer, t string, f string, o string, p string, ba map[string]interface{}, l map[string]interface{}) error {
 	args := []string{"build"}
 	if t != "" {
 		args = append(args, "-t")
@@ -630,6 +630,10 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, p string, ba map[
 	if f != "" {
 		args = append(args, "-f")
 		args = append(args, filepath.Join(dir, f))
+	}
+	if o != "" {
+		args = append(args, "--output")
+		args = append(args, o)
 	}
 	if p != "" {
 		args = append(args, "--platform")
@@ -758,6 +762,28 @@ func nerdctlBuildCache() []map[string]interface{} {
 		}
 	}
 	return records
+}
+
+func nerdctlBuildWorker() string {
+	args := []string{"debug", "workers", "--format=json"}
+	args = append(args, nerdctlBuildArgs()...)
+	nc, err := exec.Command("buildctl", args...).Output()
+	if err != nil {
+		log.Print(err)
+		return ""
+	}
+	var workers []map[string]interface{}
+	err = json.Unmarshal(nc, &workers)
+	if err != nil {
+		log.Print(err)
+		return ""
+	}
+	for _, worker := range workers {
+		labels := worker["labels"].(map[string]interface{})
+		executor := labels["org.mobyproject.buildkit.worker.executor"].(string)
+		return executor
+	}
+	return ""
 }
 
 func extractTar(dst string, r io.Reader) error {
@@ -1318,11 +1344,19 @@ func setupRouter() *gin.Engine {
 		}
 		tag := c.Query("t")
 		dockerfile := c.Query("dockerfile")
+		output := "type=local"
+		output += ",dest=path"
 		platform := c.Query("platform")
+		if nerdctlBuildWorker() == "containerd" && platform == "" {
+			output = "type=image"
+			if tag != "" {
+				output += ",name=" + tag
+			}
+		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		buildargs := parseObject([]byte(c.Query("buildargs")))
 		labels := parseObject([]byte(c.Query("labels")))
-		err = nerdctlBuild(dir, c.Writer, tag, dockerfile, platform, buildargs, labels)
+		err = nerdctlBuild(dir, c.Writer, tag, dockerfile, output, platform, buildargs, labels)
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
