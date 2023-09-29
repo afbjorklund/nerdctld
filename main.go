@@ -523,7 +523,7 @@ func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	errors := make(chan error)
+	errors := make(chan error, 1)
 	go func() {
 		defer stdin.Close()
 		if _, err := io.Copy(stdin, r); err != nil {
@@ -565,7 +565,7 @@ func nerdctlSave(names []string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	errors := make(chan error)
+	errors := make(chan error, 1)
 	go func() {
 		defer stdout.Close()
 		if _, err := io.Copy(w, stdout); err != nil {
