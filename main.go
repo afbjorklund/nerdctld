@@ -655,7 +655,7 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, o string, p strin
 	log.Printf("build %v\n", args)
 	// TODO: stream
 	cmd := exec.Command("nerdctl", args...)
-	nc, err := cmd.Output()
+	nc, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
 	}
