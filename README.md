@@ -230,6 +230,14 @@ DOCKER_BUILDKIT=0 docker build -t docker.io/myimage .
 
 Otherwise, it will not be able to find your image later...
 
+### Using nerdctld with k3s
+
+The containerd socket is available in a different path:
+
+```shell
+CONTAINERD_ADDRESS=unix:///run/k3s/containerd/containerd.sock
+```
+
 ## Remote socket
 
 Calling the socket over `ssh:` requires a program:
