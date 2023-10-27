@@ -76,6 +76,24 @@ func containerdVersion() (string, map[string]string) {
 	return v, nil
 }
 
+func ctrVersion() (string, map[string]string) {
+	nv, err := exec.Command("ctr", "--version").Output()
+	if err != nil {
+		log.Print(err)
+		return "", nil
+	}
+	v := strings.TrimSuffix(string(nv), "\n")
+	// ctr github.com/containerd/containerd Version GitCommit
+	c := strings.SplitN(v, " ", 4)
+	if len(c) == 4 && c[0] == "ctr" {
+		v = strings.Replace(c[2], "v", "", 1)
+		if c[3] != "" {
+			return v, map[string]string{"GitCommit": c[3]}
+		}
+	}
+	return v, nil
+}
+
 func buildctlVersion() (string, map[string]string) {
 	nv, err := exec.Command("buildctl", "--version").Output()
 	if err != nil {
@@ -200,6 +218,8 @@ func nerdctlComponents() []ComponentVersion {
 		cmp = append(cmp, ComponentVersion{Name: "buildctl", Version: version, Details: details})
 	}
 	if version, details = containerdVersion(); version != "" {
+		cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
+	} else if version, details = ctrVersion(); version != "" { // use client version as fallback
 		cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
 	}
 	if version, details := runcVersion(); version != "" {
