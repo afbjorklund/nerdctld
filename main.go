@@ -61,7 +61,8 @@ func nerdctlVersion() (string, map[string]string) {
 func containerdVersion() (string, map[string]string) {
 	nv, err := exec.Command("containerd", "--version").Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return "", nil
 	}
 	v := strings.TrimSuffix(string(nv), "\n")
 	// containerd github.com/containerd/containerd Version GitCommit
@@ -79,6 +80,7 @@ func buildctlVersion() (string, map[string]string) {
 	nv, err := exec.Command("buildctl", "--version").Output()
 	if err != nil {
 		log.Print(err)
+		return "", nil
 	}
 	v := strings.TrimSuffix(string(nv), "\n")
 	// buildctl github.com/moby/buildkit Version GitCommit
@@ -95,7 +97,8 @@ func buildctlVersion() (string, map[string]string) {
 func runcVersion() (string, map[string]string) {
 	nv, err := exec.Command("runc", "--version").Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return "", nil
 	}
 	l := strings.Split(string(nv), "\n")
 	if len(l) == 0 {
@@ -196,8 +199,9 @@ func nerdctlComponents() []ComponentVersion {
 	if version, details := buildctlVersion(); version != "" {
 		cmp = append(cmp, ComponentVersion{Name: "buildctl", Version: version, Details: details})
 	}
-	version, details = containerdVersion()
-	cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
+	if version, details = containerdVersion(); version != "" {
+		cmp = append(cmp, ComponentVersion{Name: "containerd", Version: version, Details: details})
+	}
 	if version, details := runcVersion(); version != "" {
 		cmp = append(cmp, ComponentVersion{Name: "runc", Version: version, Details: details})
 	}
