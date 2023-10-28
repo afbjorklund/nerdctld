@@ -857,7 +857,7 @@ var reImagesPush = regexp.MustCompile(`^/(?P<ver>.*)/images/(?P<name>.*)/push$`)
 // regular expression for starting version number in url
 var reApiVersion = regexp.MustCompile(`^/(?P<ver>[0-9][.][0-9]+)/.*$`)
 
-const CurrentAPIVersion = "1.42" // 23.0
+const CurrentAPIVersion = "1.43" // 24.0
 const MinimumAPIVersion = "1.24" // 1.12
 
 //nolint:gocyclo // Handles all the routing in one place
