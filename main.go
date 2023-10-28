@@ -1476,7 +1476,7 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 func version() string {
-	return "0.4.0"
+	return "0.4.1"
 }
 
 func main() {
