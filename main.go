@@ -998,6 +998,12 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/:ver/info", func(c *gin.Context) {
+		type plugins struct {
+			Volume        []string
+			Network       []string
+			Authorization []string
+			Log           []string
+		}
 		type runtime struct {
 			Path string   `json:"path"`
 			Args []string `json:"runtimeArgs,omitempty"`
@@ -1006,16 +1012,16 @@ func setupRouter() *gin.Engine {
 			LocalNodeState string
 		}
 		var inf struct {
-			ID                string
-			Containers        int
-			ContainersRunning int
-			ContainersPaused  int
-			ContainersStopped int
-			Images            int
-			Driver            string
-			DriverStatus      [][2]string
-			SystemStatus      [][2]string
-			//Plugins            PluginsInfo
+			ID                 string
+			Containers         int
+			ContainersRunning  int
+			ContainersPaused   int
+			ContainersStopped  int
+			Images             int
+			Driver             string
+			DriverStatus       [][2]string
+			SystemStatus       [][2]string
+			Plugins            plugins
 			MemoryLimit        bool
 			SwapLimit          bool
 			KernelMemory       bool
