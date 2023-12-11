@@ -1235,6 +1235,10 @@ func setupRouter() *gin.Engine {
 			http.Error(c.Writer, err.Error(), http.StatusNotFound)
 			return
 		}
+		// portainer assumes that this field is available, or: panic
+		container["HostConfig"] = map[string]interface{}{
+			"Resources": map[string]interface{}{
+				"DeviceRequests": make([]interface{}, 0)}}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, container)
 	})
