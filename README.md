@@ -304,6 +304,8 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * tag (image tag)
 * volume ls
 * volume inspect
+* network ls
+* network inspect
 * build
 
 Note: using "build" requires the `buildctl` client.

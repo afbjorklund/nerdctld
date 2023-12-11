@@ -449,6 +449,84 @@ func nerdctlVolume(name string) (map[string]interface{}, error) {
 	return volume, nil
 }
 
+func parseNetworkFilter(param []byte) string {
+	if len(param) == 0 {
+		return ""
+	}
+	// filters: {"name":"net"}}
+	var filters map[string]interface{}
+	err := json.Unmarshal(param, &filters)
+	if err != nil {
+		log.Fatal(err)
+	}
+	filter := ""
+	for key, val := range filters {
+		filter += fmt.Sprintf("%s=%s", key, val)
+	}
+	return filter
+}
+func nameNetworkDriver(name string) string {
+	switch name {
+	case "host":
+		return "host"
+	case "none":
+		return "null"
+	default:
+		return ""
+	}
+}
+
+func splitNetworkLabels(value string) map[string]string {
+	labels := map[string]string{}
+	for _, label := range strings.Split(value, ",") {
+		if kv := strings.Split(label, "="); len(kv) > 1 {
+			labels[kv[0]] = kv[1]
+		}
+	}
+	return labels
+}
+
+func nerdctlNetworks(filter string) []map[string]interface{} {
+	args := []string{"network", "ls"}
+	if filter != "" {
+		args = append(args, "--filter", filter)
+	}
+	args = append(args, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var networks []map[string]interface{}
+	scanner := bufio.NewScanner(bytes.NewReader(nc))
+	for scanner.Scan() {
+		var network map[string]interface{}
+		err = json.Unmarshal(scanner.Bytes(), &network)
+		if err != nil {
+			log.Fatal(err)
+		}
+		networks = append(networks, network)
+	}
+	return networks
+}
+
+func nerdctlNetwork(name string) (map[string]interface{}, error) {
+	args := []string{"network", "inspect"}
+	args = append(args, name, "--format", "{{json .}}")
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		if exiterr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("%s", exiterr.Stderr)
+		}
+		return nil, err
+	}
+	var network map[string]interface{}
+	err = json.Unmarshal(nc, &network)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return network, nil
+}
+
 func unixTime(s string) int64 {
 	i, err := time.Parse("2006-01-02T15:04:05Z", s)
 	if err == nil {
@@ -1283,6 +1361,42 @@ func setupRouter() *gin.Engine {
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, volume)
+	})
+
+	r.GET("/:ver/networks", func(c *gin.Context) {
+		filters := c.Query("filters")
+		filter := parseNetworkFilter([]byte(filters))
+		type net struct {
+			ID     string `json:"Id"`
+			Driver string
+			Scope  string
+			Labels map[string]string
+			Name   string
+		}
+		nets := []net{}
+		networks := nerdctlNetworks(filter)
+		for _, network := range networks {
+			var net net
+			net.ID = network["ID"].(string)
+			net.Name = network["Name"].(string)
+			net.Driver = nameNetworkDriver(net.Name)
+			net.Scope = "local"
+			net.Labels = splitNetworkLabels(network["Labels"].(string))
+			nets = append(nets, net)
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, nets)
+	})
+
+	r.GET("/:ver/networks/:name", func(c *gin.Context) {
+		name := c.Param("name")
+		network, err := nerdctlNetwork(name)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusNotFound)
+			return
+		}
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, network)
 	})
 
 	r.GET("/:ver/system/df", func(c *gin.Context) {
