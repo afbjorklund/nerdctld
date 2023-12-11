@@ -399,16 +399,14 @@ func parseVolumeFilter(param []byte) string {
 		return ""
 	}
 	// filters: {"name":{"vol":true}}
-	var filters map[string]map[string]interface{}
+	var filters map[string]interface{}
 	err := json.Unmarshal(param, &filters)
 	if err != nil {
 		log.Fatal(err)
 	}
 	filter := ""
-	for key, ref := range filters {
-		for val := range ref {
-			filter += fmt.Sprintf("%s=%s", key, val)
-		}
+	for key, val := range filters {
+		filter += fmt.Sprintf("%s=%s", key, val)
 	}
 	return filter
 }
