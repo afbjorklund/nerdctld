@@ -152,6 +152,19 @@ func tiniVersion() (string, map[string]string) {
 	return v, nil
 }
 
+type Commit struct {
+	ID       string
+	Expected string
+}
+
+func getCommit(version string, details map[string]string) Commit {
+	commit := "N/A"
+	if gitCommit := details["GitCommit"]; gitCommit != "" {
+		commit = gitCommit
+	}
+	return Commit{ID: commit, Expected: commit}
+}
+
 // vercmp compares two version strings
 // returns -1 if v1 < v2, 1 if v1 > v2, 0 otherwise.
 func vercmp(v1, v2 string) int {
@@ -1082,6 +1095,9 @@ func setupRouter() *gin.Engine {
 			// running containers are detected
 			LiveRestoreEnabled bool
 			InitBinary         string
+			ContainerdCommit   Commit
+			RuncCommit         Commit
+			InitCommit         Commit
 		}
 		info := nerdctlInfo()
 		inf.ID = info["ID"].(string)
@@ -1118,6 +1134,9 @@ func setupRouter() *gin.Engine {
 		inf.Runtimes = map[string]runtime{"runc": {Path: "runc"}}
 		inf.Swarm = swarm{LocalNodeState: "inactive"}
 		inf.InitBinary = "tini"
+		inf.ContainerdCommit = getCommit(containerdVersion())
+		inf.RuncCommit = getCommit(runcVersion())
+		inf.InitCommit = getCommit(tiniVersion())
 		inf.SecurityOptions = stringArray(info["SecurityOptions"].([]interface{}))
 		inf.Plugins = info["Plugins"].(map[string]interface{})
 		inf.Plugins["Volume"] = []string{"local"}
