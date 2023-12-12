@@ -1098,8 +1098,9 @@ func setupRouter() *gin.Engine {
 		inf.InitBinary = "tini"
 		inf.SecurityOptions = stringArray(info["SecurityOptions"].([]interface{}))
 		inf.Plugins = info["Plugins"].(map[string]interface{})
-		inf.Plugins["Volume"] = []string{}
-		inf.Plugins["Network"] = []string{}
+		inf.Plugins["Volume"] = []string{"local"}
+		cniPlugins := []string{"bridge", "macvlan", "ipvlan"}
+		inf.Plugins["Network"] = append([]string{"null", "host"}, cniPlugins...)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, inf)
 	})
