@@ -356,6 +356,16 @@ func getState(status string) string {
 	return ""
 }
 
+func lenStatus(containers []map[string]interface{}, status string) int {
+	count := 0
+	for _, container := range containers {
+		if status == container["Status"].(string) {
+			count++
+		}
+	}
+	return count
+}
+
 func nerdctlContainers(all bool) []map[string]interface{} {
 	args := []string{"ps"}
 	if all {
@@ -1066,8 +1076,11 @@ func setupRouter() *gin.Engine {
 		}
 		info := nerdctlInfo()
 		inf.ID = info["ID"].(string)
-		inf.Containers = len(nerdctlContainers(true))
-		inf.ContainersRunning = len(nerdctlContainers(false))
+		containers := nerdctlContainers(true)
+		inf.Containers = len(containers)
+		inf.ContainersRunning = lenStatus(containers, "Running")
+		inf.ContainersPaused = lenStatus(containers, "Paused")
+		inf.ContainersStopped = lenStatus(containers, "Created")
 		inf.Images = len(nerdctlImages(""))
 		inf.Name = info["Name"].(string)
 		inf.ServerVersion, _ = nerdctlVersion()
