@@ -998,12 +998,6 @@ func setupRouter() *gin.Engine {
 	})
 
 	r.GET("/:ver/info", func(c *gin.Context) {
-		type plugins struct {
-			Volume        []string
-			Network       []string
-			Authorization []string
-			Log           []string
-		}
 		type runtime struct {
 			Path string   `json:"path"`
 			Args []string `json:"runtimeArgs,omitempty"`
@@ -1021,7 +1015,7 @@ func setupRouter() *gin.Engine {
 			Driver             string
 			DriverStatus       [][2]string
 			SystemStatus       [][2]string
-			Plugins            plugins
+			Plugins            map[string]interface{}
 			MemoryLimit        bool
 			SwapLimit          bool
 			KernelMemory       bool
@@ -1103,6 +1097,9 @@ func setupRouter() *gin.Engine {
 		inf.Swarm = swarm{LocalNodeState: "inactive"}
 		inf.InitBinary = "tini"
 		inf.SecurityOptions = stringArray(info["SecurityOptions"].([]interface{}))
+		inf.Plugins = info["Plugins"].(map[string]interface{})
+		inf.Plugins["Volume"] = []string{}
+		inf.Plugins["Network"] = []string{}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, inf)
 	})
