@@ -356,10 +356,19 @@ func getState(status string) string {
 	return ""
 }
 
+func getStatus(status string) string {
+	if strings.HasPrefix(status, "Restarting") || strings.HasPrefix(status, "Exited") {
+		return "Stopped"
+	} else if strings.HasPrefix(status, "Up") {
+		return "Running"
+	}
+	return status
+}
+
 func lenStatus(containers []map[string]interface{}, status string) int {
 	count := 0
 	for _, container := range containers {
-		if status == container["Status"].(string) {
+		if status == getStatus(container["Status"].(string)) {
 			count++
 		}
 	}
