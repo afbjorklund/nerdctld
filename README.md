@@ -118,6 +118,28 @@ Compare with the `docker` group for the docker daemon (`dockerd`):
 
 To run nerdctl without root privileges, see rootless (user) mode above.
 
+## BuildKit
+
+You probably want BuildKit to use the "containerd" worker.
+
+Instead of the default "OCI" worker, which only uses runc.
+
+/etc/buildkit/buildkitd.toml
+
+```toml
+[worker.oci]
+  enabled = false
+
+[worker.containerd]
+  enabled = true
+```
+
+This enables buildkitd to use the containerd images directly.
+
+It also saves having to save and load images, after building.
+
+See: <https://github.com/containerd/nerdctl/blob/main/docs/build.md>
+
 ## Kubernetes
 
 In order to see the Kubernetes containers and images,
