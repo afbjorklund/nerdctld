@@ -4,8 +4,9 @@
 #
 name: "nerdctld"
 arch: "${GOARCH}"
-#platform: "${GOOS}"
+platform: "${GOOS}"
 version: "${VERSION}"
+release: 0
 section: "default"
 priority: "extra"
 rpm:
