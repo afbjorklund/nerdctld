@@ -20,12 +20,13 @@ provision:
     command -v nerdctld >/dev/null 2>&1 && exit 0
     NAME=nerdctld
     VERSION=0.5.0
+    RELEASE=0
     case $(uname -m) in
       x86_64)   DEBARCH=amd64;;
       aarch64)  DEBARCH=arm64;;
     esac
-    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}_${VERSION}_${DEBARCH}.deb
-    dpkg -i ${NAME}_${VERSION}_${DEBARCH}.deb
+    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}_${VERSION}-${RELEASE}_${DEBARCH}.deb
+    dpkg -i ${NAME}_${VERSION}-${RELEASE}_${DEBARCH}.deb
 - mode: user
   script: |
     #!/bin/bash

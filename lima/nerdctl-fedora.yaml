@@ -21,12 +21,13 @@ provision:
     command -v nerdctld >/dev/null 2>&1 && exit 0
     NAME=nerdctld
     VERSION=0.5.0
+    RELEASE=0
     case $(uname -m) in
       x86_64)   RPMARCH=x86_64;;
       aarch64)  RPMARCH=aarch64;;
     esac
-    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}-${VERSION}.${RPMARCH}.rpm
-    rpm -i ${NAME}-${VERSION}.${RPMARCH}.rpm
+    curl -sSLO https://github.com/afbjorklund/nerdctld/releases/download/v${VERSION}/${NAME}-${VERSION}-${RELEASE}.${RPMARCH}.rpm
+    rpm -i ${NAME}-${VERSION}-${RELEASE}.${RPMARCH}.rpm
 - mode: user
   script: |
     #!/bin/bash
