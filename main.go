@@ -158,10 +158,7 @@ type Commit struct {
 }
 
 func getCommit(version string, details map[string]string) Commit {
-	commit := "N/A"
-	if gitCommit := details["GitCommit"]; gitCommit != "" {
-		commit = gitCommit
-	}
+	commit := details["GitCommit"]
 	return Commit{ID: commit, Expected: commit}
 }
 
