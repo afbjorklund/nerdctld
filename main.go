@@ -372,6 +372,8 @@ func getState(status string) string {
 func getStatus(status string) string {
 	if strings.HasPrefix(status, "Restarting") || strings.HasPrefix(status, "Exited") {
 		return "Stopped"
+	} else if strings.HasPrefix(status, "Created") {
+		return "Stopped"
 	} else if strings.HasPrefix(status, "Up") {
 		return "Running"
 	}
@@ -1105,7 +1107,7 @@ func setupRouter() *gin.Engine {
 		inf.Containers = len(containers)
 		inf.ContainersRunning = lenStatus(containers, "Running")
 		inf.ContainersPaused = lenStatus(containers, "Paused")
-		inf.ContainersStopped = lenStatus(containers, "Created")
+		inf.ContainersStopped = lenStatus(containers, "Stopped")
 		inf.Images = len(nerdctlImages(""))
 		inf.Name = info["Name"].(string)
 		inf.ServerVersion, _ = nerdctlVersion()
