@@ -132,6 +132,7 @@ Instead of the default "OCI" worker, which only uses runc.
 
 [worker.containerd]
   enabled = true
+  namespace = "default"
 ```
 
 This enables buildkitd to use the containerd images directly.
