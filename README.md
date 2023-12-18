@@ -44,7 +44,7 @@ Docker version | API version
 * `docker.sock`
 * `nerdctl.sock`
 * `containerd.sock`
-* `buildkit.sock`
+* `buildkitd.sock`
 
 ## Debugging
 
