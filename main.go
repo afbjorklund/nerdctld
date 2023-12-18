@@ -1568,8 +1568,7 @@ func setupRouter() *gin.Engine {
 		}
 		tag := c.Query("t")
 		dockerfile := c.Query("dockerfile")
-		output := "type=local"
-		output += ",dest=path"
+		output := ""
 		platform := c.Query("platform")
 		if nerdctlBuildWorker() == "containerd" && platform == "" {
 			output = "type=image"
