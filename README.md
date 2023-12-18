@@ -293,6 +293,7 @@ It and docs can be found at <https://gin-gonic.com/> with some nice [examples](h
 * info (system info)
 * ps (container ls)
 * inspect (container inspect)
+* logs (container logs)
 * images (image ls)
 * inspect (image inspect)
 * history (image history)

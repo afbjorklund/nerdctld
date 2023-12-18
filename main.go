@@ -425,6 +425,36 @@ func nerdctlContainer(name string) (map[string]interface{}, error) {
 	return image, nil
 }
 
+func nerdctlLogs(name string, w io.Writer, tail string) error {
+	args := []string{"logs"}
+	args = append(args, name)
+	if tail != "" {
+		args = append(args, "--tail", tail)
+	}
+	nc, err := exec.Command("nerdctl", args...).Output()
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(nc), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		line += "\n"
+		size := uint32(len(line))
+		header := []byte{1, 0, 0, 0, byte(size >> 24), byte(size >> 16 & 0xff), byte(size >> 8 & 0xff), byte(size & 0xff)}
+		_, err = w.Write([]byte(header))
+		if err != nil {
+			return err
+		}
+		_, err = w.Write([]byte(line))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func parseVolumeFilter(param []byte) string {
 	if len(param) == 0 {
 		return ""
@@ -1360,6 +1390,17 @@ func setupRouter() *gin.Engine {
 				"DeviceRequests": make([]interface{}, 0)}}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, container)
+	})
+
+	r.GET("/:ver/containers/:name/logs", func(c *gin.Context) {
+		name := c.Param("name")
+		tail := c.Query("tail")
+		err := nerdctlLogs(name, c.Writer, tail)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusNotFound)
+			return
+		}
+		c.Status(http.StatusOK)
 	})
 
 	r.GET("/:ver/volumes", func(c *gin.Context) {
