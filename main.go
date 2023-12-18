@@ -1274,7 +1274,6 @@ func setupRouter() *gin.Engine {
 
 	r.POST("/:ver/images/load", func(c *gin.Context) {
 		quiet := c.Query("quiet")
-		log.Printf("quiet: %s", quiet)
 		contentType := c.Request.Header.Get("Content-Type")
 		if contentType != "application/tar" && contentType != "application/x-tar" {
 			http.Error(c.Writer, fmt.Sprintf("%s not tar", contentType), http.StatusBadRequest)
