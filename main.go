@@ -839,6 +839,47 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, o string, p strin
 	return nil
 }
 
+func cacheSize(s string) int64 {
+	s = strings.Replace(s, "B", "", 1)
+	if s == "" {
+		return 0
+	}
+	m := 1
+	switch s[len(s)-1] {
+	case 'K':
+		m = 1024
+		s = s[:len(s)-1]
+	case 'M':
+		m = 1024 * 1024
+		s = s[:len(s)-1]
+	case 'G':
+		m = 1024 * 1024 * 1024
+		s = s[:len(s)-1]
+	}
+	n, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return int64(n * float64(m))
+}
+
+func nerdctlBuildPrune() (int64, error) {
+	args := []string{"builder", "prune"}
+	nc, err := exec.Command("nerdctl", args...).CombinedOutput()
+	if err != nil {
+		return 0, err
+	}
+	lines := strings.Split(string(nc), "\n")
+	size := int64(0)
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Total:") {
+			s := strings.Replace(line, "Total:", "", 1)
+			size = cacheSize(strings.TrimSpace(s))
+		}
+	}
+	return size, nil
+}
+
 func isUnixSocket(path string) bool {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -1585,6 +1626,30 @@ func setupRouter() *gin.Engine {
 			return
 		}
 		c.Status(http.StatusOK)
+	})
+
+	r.POST("/:ver/build/prune", func(c *gin.Context) {
+		cache := nerdctlBuildCache()
+		space, err := nerdctlBuildPrune()
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		var bp struct {
+			CachesDeleted  []string
+			SpaceReclaimed int64
+		}
+		caches := []string{}
+		for _, r := range cache {
+			t := r["Type"].(string)
+			if t == "internal" || t == "frontend" {
+				continue
+			}
+			caches = append(caches, r["ID"].(string))
+		}
+		bp.CachesDeleted = caches
+		bp.SpaceReclaimed = space
+		c.JSON(http.StatusOK, bp)
 	})
 
 	r.NoRoute(func(c *gin.Context) {
