@@ -886,7 +886,7 @@ func nerdctlBuildArgs() []string {
 func nerdctlBuildCache() []map[string]interface{} {
 	args := []string{"du"}
 	args = append(args, "--verbose")
-	args = append(args, nerdctlBuildArgs()...)
+	args = append(nerdctlBuildArgs(), args...)
 	nc, err := exec.Command("buildctl", args...).Output()
 	if err != nil {
 		log.Print(err)
@@ -927,7 +927,7 @@ func nerdctlBuildCache() []map[string]interface{} {
 
 func nerdctlBuildWorker() string {
 	args := []string{"debug", "workers", "--format=json"}
-	args = append(args, nerdctlBuildArgs()...)
+	args = append(nerdctlBuildArgs(), args...)
 	nc, err := exec.Command("buildctl", args...).Output()
 	if err != nil {
 		log.Print(err)
