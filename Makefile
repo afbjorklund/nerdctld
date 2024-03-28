@@ -38,7 +38,7 @@ artifacts-%:
 	$(RM) nerdctld
 	GOOS=linux GOARCH=$(subst arm7,arm GOARM=7,$*) \
 	GO111MODULE=on CGO_ENABLED=0 $(MAKE) binaries \
-	BUILDFLAGS="-ldflags '-s -w'"
+	BUILDFLAGS="-ldflags '-s -w' -trimpath"
 	GOOS=linux GOARCH=$* VERSION=$(VERSION) nfpm pkg --packager deb
 	GOOS=linux GOARCH=$* VERSION=$(VERSION) nfpm pkg --packager rpm
 	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-$(subst arm7,arm-v7,$*).tar.gz nerdctld docker.sh
