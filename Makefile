@@ -29,23 +29,19 @@ install: nerdctld
 	install -D -m 755 nerdctl.service $(DESTDIR)$(PREFIX)/lib/systemd/user/nerdctl.service
 	install -D -m 755 nerdctl.socket $(DESTDIR)$(PREFIX)/lib/systemd/user/nerdctl.socket
 
+# "nerdctld"
+.NOTPARALLEL:
+
 .PHONY: artifacts
-artifacts:
+artifacts: artifacts-amd64 artifacts-arm64
+artifacts-%:
 	$(RM) nerdctld
-	GOOS=linux GOARCH=amd64 \
+	GOOS=linux GOARCH=$* \
 	GO111MODULE=on CGO_ENABLED=0 $(MAKE) binaries \
 	BUILDFLAGS="-ldflags '-s -w'"
-	GOOS=linux GOARCH=amd64 VERSION=$(VERSION) nfpm pkg --packager deb
-	GOOS=linux GOARCH=amd64 VERSION=$(VERSION) nfpm pkg --packager rpm
-	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-amd64.tar.gz nerdctld docker.sh
-	$(RM) nerdctld
-	GOOS=linux GOARCH=arm64 \
-	GO111MODULE=on CGO_ENABLED=0 $(MAKE) binaries \
-	BUILDFLAGS="-ldflags '-s -w'"
-	GOOS=linux GOARCH=arm64 VERSION=$(VERSION) nfpm pkg --packager deb
-	GOOS=linux GOARCH=arm64 VERSION=$(VERSION) nfpm pkg --packager rpm
-	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-arm64.tar.gz nerdctld docker.sh
-	$(RM) nerdctld
+	GOOS=linux GOARCH=$* VERSION=$(VERSION) nfpm pkg --packager deb
+	GOOS=linux GOARCH=$* VERSION=$(VERSION) nfpm pkg --packager rpm
+	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-$*.tar.gz nerdctld docker.sh
 
 .PHONY: clean
 clean:
