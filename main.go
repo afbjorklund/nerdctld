@@ -920,6 +920,11 @@ func nerdctlBuildPrune() (int64, error) {
 	return size, nil
 }
 
+func nerdctlBuildExe(args []string) (string, []string) {
+	buildctl := "buildctl"
+	return buildctl, args
+}
+
 func isUnixSocket(path string) bool {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -965,10 +970,10 @@ func nerdctlBuildArgs() []string {
 }
 
 func nerdctlBuildCache() []map[string]interface{} {
-	args := []string{"du"}
-	args = append(args, "--verbose")
+	args := []string{"du", "-v"}
 	args = append(nerdctlBuildArgs(), args...)
-	nc, err := exec.Command("buildctl", args...).Output()
+	buildctl, args := nerdctlBuildExe(args)
+	nc, err := exec.Command(buildctl, args...).Output()
 	if err != nil {
 		log.Print(err)
 		return nil
@@ -1009,7 +1014,8 @@ func nerdctlBuildCache() []map[string]interface{} {
 func nerdctlBuildWorker() string {
 	args := []string{"debug", "workers", "--format=json"}
 	args = append(nerdctlBuildArgs(), args...)
-	nc, err := exec.Command("buildctl", args...).Output()
+	buildctl, args := nerdctlBuildExe(args)
+	nc, err := exec.Command(buildctl, args...).Output()
 	if err != nil {
 		log.Print(err)
 		return ""
