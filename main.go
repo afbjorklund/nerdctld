@@ -272,12 +272,8 @@ func remoteComponents() []ComponentVersion {
 		log.Fatal(err)
 	}
 	cmp = append(cmp, ComponentVersion{Name: "nerdctl", Version: version.Client.Version})
-	for _, component := range version.Client.Components {
-		cmp = append(cmp, component)
-	}
-	for _, component := range version.Server.Components {
-		cmp = append(cmp, component)
-	}
+	cmp = append(cmp, version.Client.Components...)
+	cmp = append(cmp, version.Server.Components...)
 	return cmp
 }
 
