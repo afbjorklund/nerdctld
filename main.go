@@ -32,6 +32,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -237,6 +238,45 @@ func nerdctlComponents() []ComponentVersion {
 	}
 	if version, details := tiniVersion(); version != "" { // renamed to "docker-init" in docker
 		cmp = append(cmp, ComponentVersion{Name: "tini", Version: version, Details: details})
+	}
+	return cmp
+}
+
+type ClientVersion struct {
+	Version    string
+	GitCommit  string
+	GoVersion  string
+	Os         string // GOOS
+	Arch       string // GOARCH
+	Components []ComponentVersion
+}
+
+type ServerVersion struct {
+	Components []ComponentVersion
+}
+
+type VersionInfo struct {
+	Client ClientVersion
+	Server ServerVersion
+}
+
+func remoteComponents() []ComponentVersion {
+	var cmp []ComponentVersion
+	nc, err := exec.Command("nerdctl", "version", "--format", "{{json .}}").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var version VersionInfo
+	err = json.Unmarshal(nc, &version)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cmp = append(cmp, ComponentVersion{Name: "nerdctl", Version: version.Client.Version})
+	for _, component := range version.Client.Components {
+		cmp = append(cmp, component)
+	}
+	for _, component := range version.Server.Components {
+		cmp = append(cmp, component)
 	}
 	return cmp
 }
@@ -1093,7 +1133,11 @@ func setupRouter() *gin.Engine {
 		ver.Experimental = true
 		if vercmp(apiver, "v1.35") > 0 {
 			ver.Platform = nerdctlPlatform()
-			ver.Components = nerdctlComponents()
+			if runtime.GOOS == "linux" {
+				ver.Components = nerdctlComponents()
+			} else {
+				ver.Components = remoteComponents()
+			}
 		}
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.JSON(http.StatusOK, ver)
