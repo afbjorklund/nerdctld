@@ -918,6 +918,10 @@ func nerdctlBuildPrune() (int64, error) {
 
 func nerdctlBuildExe(args []string) (string, []string) {
 	buildctl := "buildctl"
+	if runtime.GOOS != "linux" {
+		args = append([]string{buildctl}, args...)
+		buildctl = "lima"
+	}
 	return buildctl, args
 }
 
@@ -948,6 +952,19 @@ func buildkitSocket(dir string, namespace string) string {
 func nerdctlBuildArgs() []string {
 	args := []string{}
 	address := os.Getenv("BUILDKIT_HOST")
+	if runtime.GOOS != "linux" {
+		script := `find $XDG_RUNTIME_DIR -name buildkitd.sock -type s `
+		script += `2>/dev/null | grep buildkit-${CONTAINERD_NAMESPACE:-default}`
+		if address == "" {
+			args := []string{"/bin/sh", "-c", script}
+			sock, err := exec.Command("lima", args...).Output()
+			if err != nil {
+				return args
+			}
+			address = "unix://" + strings.TrimSuffix(string(sock), "\n")
+		}
+		return append([]string{"--addr", address}, args...)
+	}
 	if uid := os.Geteuid(); uid != 0 {
 		dir := os.Getenv("XDG_RUNTIME_DIR")
 		if dir == "" {
@@ -1643,7 +1660,11 @@ func setupRouter() *gin.Engine {
 				log.Fatal(err)
 			}
 		}
-		dir, err := os.MkdirTemp("", "build")
+		tmpdir := ""
+		if runtime.GOOS != "linux" {
+			tmpdir = "/tmp/lima"
+		}
+		dir, err := os.MkdirTemp(tmpdir, "build")
 		if err != nil {
 			log.Fatal(err)
 		}
