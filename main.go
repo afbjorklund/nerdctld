@@ -1813,6 +1813,9 @@ func version() string {
 }
 
 func main() {
+	if runtime.GOOS != "linux" {
+		nerdctl = "nerdctl.lima"
+	}
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
