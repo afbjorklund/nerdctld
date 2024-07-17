@@ -45,8 +45,10 @@ import (
 	"github.com/tj/go-naturaldate"
 )
 
+var nerdctl = "nerdctl"
+
 func nerdctlVersion() (string, map[string]string) {
-	nv, err := exec.Command("nerdctl", "--version").Output()
+	nv, err := exec.Command(nerdctl, "--version").Output()
 	if err != nil {
 		// log stderr for basic troubleshooting
 		if exiterr, ok := err.(*exec.ExitError); ok {
@@ -195,7 +197,7 @@ func vercmp(v1, v2 string) int {
 }
 
 func nerdctlVer() map[string]interface{} {
-	nc, err := exec.Command("nerdctl", "version", "--format", "{{json .}}").Output()
+	nc, err := exec.Command(nerdctl, "version", "--format", "{{json .}}").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -262,7 +264,7 @@ type VersionInfo struct {
 
 func remoteComponents() []ComponentVersion {
 	var cmp []ComponentVersion
-	nc, err := exec.Command("nerdctl", "version", "--format", "{{json .}}").Output()
+	nc, err := exec.Command(nerdctl, "version", "--format", "{{json .}}").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -278,7 +280,7 @@ func remoteComponents() []ComponentVersion {
 }
 
 func nerdctlInfo() map[string]interface{} {
-	nc, err := exec.Command("nerdctl", "info", "--format", "{{json .}}").Output()
+	nc, err := exec.Command(nerdctl, "info", "--format", "{{json .}}").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -313,7 +315,7 @@ func nerdctlImages(filter string) []map[string]interface{} {
 		args = append(args, filter)
 	}
 	args = append(args, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -333,7 +335,7 @@ func nerdctlImages(filter string) []map[string]interface{} {
 func nerdctlImage(name string) (map[string]interface{}, error) {
 	args := []string{"image", "inspect", "--mode", "dockercompat"}
 	args = append(args, name, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		return nil, err
 	}
@@ -350,7 +352,7 @@ func nerdctlImage(name string) (map[string]interface{}, error) {
 func nerdctlHistory(name string) ([]map[string]interface{}, error) {
 	args := []string{"history"}
 	args = append(args, name, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +373,7 @@ func nerdctlTag(source string, target string) error {
 	args := []string{"tag"}
 	args = append(args, source)
 	args = append(args, target)
-	err := exec.Command("nerdctl", args...).Run()
+	err := exec.Command(nerdctl, args...).Run()
 	if err != nil {
 		return err
 	}
@@ -429,7 +431,7 @@ func nerdctlContainers(all bool) []map[string]interface{} {
 		args = append(args, "-a")
 	}
 	args = append(args, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -449,7 +451,7 @@ func nerdctlContainers(all bool) []map[string]interface{} {
 func nerdctlContainer(name string) (map[string]interface{}, error) {
 	args := []string{"container", "inspect", "--mode", "dockercompat"}
 	args = append(args, name, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		return nil, err
 	}
@@ -467,7 +469,7 @@ func nerdctlLogs(name string, w io.Writer, tail string) error {
 	if tail != "" {
 		args = append(args, "--tail", tail)
 	}
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		return err
 	}
@@ -514,7 +516,7 @@ func nerdctlVolumes(filter string) []map[string]interface{} {
 		args = append(args, "--filter", filter)
 	}
 	args = append(args, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -534,7 +536,7 @@ func nerdctlVolumes(filter string) []map[string]interface{} {
 func nerdctlVolume(name string) (map[string]interface{}, error) {
 	args := []string{"volume", "inspect"}
 	args = append(args, name, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		return nil, err
 	}
@@ -589,7 +591,7 @@ func nerdctlNetworks(filter string) []map[string]interface{} {
 		args = append(args, "--filter", filter)
 	}
 	args = append(args, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -609,7 +611,7 @@ func nerdctlNetworks(filter string) []map[string]interface{} {
 func nerdctlNetwork(name string) (map[string]interface{}, error) {
 	args := []string{"network", "inspect"}
 	args = append(args, name, "--format", "{{json .}}")
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			return nil, fmt.Errorf("%s", exiterr.Stderr)
@@ -665,7 +667,7 @@ func byteSize(s string) int64 {
 func nerdctlPull(name string, w io.Writer) error {
 	args := []string{"pull"}
 	args = append(args, name)
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		return err
 	}
@@ -690,7 +692,7 @@ func nerdctlPull(name string, w io.Writer) error {
 
 func nerdctlPush(name string, w io.Writer) error {
 	args := []string{"push"}
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		return err
 	}
@@ -715,7 +717,7 @@ func nerdctlPush(name string, w io.Writer) error {
 
 func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
 	args := []string{"load"}
-	cmd := exec.Command("nerdctl", args...)
+	cmd := exec.Command(nerdctl, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err
@@ -757,7 +759,7 @@ func nerdctlLoad(quiet bool, r io.Reader, w io.Writer) error {
 func nerdctlSave(names []string, w io.Writer) error {
 	args := []string{"save"}
 	args = append(args, names...)
-	cmd := exec.Command("nerdctl", args...)
+	cmd := exec.Command(nerdctl, args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -783,7 +785,7 @@ func nerdctlSave(names []string, w io.Writer) error {
 func nerdctlRmi(name string, w io.Writer) error {
 	args := []string{"rmi"}
 	args = append(args, name)
-	nc, err := exec.Command("nerdctl", args...).Output()
+	nc, err := exec.Command(nerdctl, args...).Output()
 	if err != nil {
 		return err
 	}
@@ -851,7 +853,7 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, o string, p strin
 	args = append(args, dir)
 	log.Printf("build %v\n", args)
 	// TODO: stream
-	cmd := exec.Command("nerdctl", args...)
+	cmd := exec.Command(nerdctl, args...)
 	nc, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
@@ -901,7 +903,7 @@ func cacheSize(s string) int64 {
 
 func nerdctlBuildPrune() (int64, error) {
 	args := []string{"builder", "prune"}
-	nc, err := exec.Command("nerdctl", args...).CombinedOutput()
+	nc, err := exec.Command(nerdctl, args...).CombinedOutput()
 	if err != nil {
 		return 0, err
 	}
