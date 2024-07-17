@@ -36,7 +36,7 @@ provision:
     set -eux -o pipefail
     command -v nerdctld >/dev/null 2>&1 && exit 0
     NAME=nerdctld
-    VERSION=0.5.1
+    VERSION=0.6.0
     GOOS=linux
     case $(uname -m) in
       x86_64)   GOARCH=amd64;;
