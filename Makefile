@@ -1,5 +1,6 @@
 
 GO ?= go
+TAR ?= tar
 
 PREFIX ?= /usr/local
 
@@ -41,7 +42,7 @@ artifacts-%:
 	BUILDFLAGS="-ldflags '-s -w' -trimpath"
 	GOOS=linux GOARCH=$* VERSION=$(VERSION) nfpm pkg --packager deb
 	GOOS=linux GOARCH=$* VERSION=$(VERSION) nfpm pkg --packager rpm
-	tar --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-$(subst arm7,arm-v7,$*).tar.gz nerdctld docker.sh
+	$(TAR) --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-$(subst arm7,arm-v7,$*).tar.gz nerdctld docker.sh
 
 .PHONY: clean
 clean:
