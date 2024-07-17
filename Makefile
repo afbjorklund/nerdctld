@@ -34,15 +34,21 @@ install: nerdctld
 .NOTPARALLEL:
 
 .PHONY: artifacts
-artifacts: artifacts-amd64 artifacts-arm64 artifacts-arm7 artifacts-riscv64 artifacts-s390x artifacts-ppc64le
+artifacts: artifacts-linux-amd64 artifacts-linux-arm64
+artifacts: artifacts-darwin-amd64 artifacts-darwin-arm64
+artifacts: artifacts-linux-arm7 artifacts-linux-riscv64
+artifacts: artifacts-linux-s390x artifacts-linux-ppc64le
 artifacts-%:
 	$(RM) nerdctld
-	GOOS=linux GOARCH=$(subst arm7,arm GOARM=7,$*) \
+	GOOS=$(firstword $(subst -, ,$*)) GOARCH=$(subst arm7,arm GOARM=7,$(lastword $(subst -, ,$*))) \
 	GO111MODULE=on CGO_ENABLED=0 $(MAKE) binaries \
 	BUILDFLAGS="-ldflags '-s -w' -trimpath"
-	GOOS=linux GOARCH=$* VERSION=$(VERSION) nfpm pkg --packager deb
-	GOOS=linux GOARCH=$* VERSION=$(VERSION) nfpm pkg --packager rpm
-	$(TAR) --owner=0 --group=0 -czvf nerdctld-$(VERSION)-linux-$(subst arm7,arm-v7,$*).tar.gz nerdctld docker.sh
+	test "$(firstword $(subst -, ,$*))" != "linux" || \
+	GOOS=$(firstword $(subst -, ,$*)) GOARCH=$(lastword $(subst -, ,$*)) VERSION=$(VERSION) nfpm pkg --packager deb
+	test "$(firstword $(subst -, ,$*))" != "linux" || \
+	GOOS=$(firstword $(subst -, ,$*)) GOARCH=$(lastword $(subst -, ,$*)) VERSION=$(VERSION) nfpm pkg --packager rpm
+	test "$(firstword $(subst -, ,$*))" != "linux" || script="docker.sh"; \
+	$(TAR) --owner=0 --group=0 -czvf nerdctld-$(VERSION)-$(firstword $(subst -, ,$*))-$(subst arm7,arm-v7,$(lastword $(subst -, ,$*))).tar.gz nerdctld $$script
 
 .PHONY: clean
 clean:
