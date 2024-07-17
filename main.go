@@ -1809,7 +1809,7 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 func version() string {
-	return "0.5.1"
+	return "0.6.1"
 }
 
 func main() {
