@@ -647,21 +647,44 @@ func unixNatural(s string) int64 {
 }
 
 func byteSize(s string) int64 {
-	w := strings.Split(s, " ")
-	n, err := strconv.ParseFloat(w[0], 64)
-	if err != nil {
-		log.Fatal(err)
+	log.Printf("byteSize: %s\n", s)
+
+	// split s into [match, number, unit], or return 0 if no pattern match is found, eg:
+	// "0B" -> ["0B" "0" "B"]
+	// "1.5GB" -> ["1.5GB", "1.5", "GB"]
+	// "741.4kB" -> ["741.4kB", "741.4", "kB"]
+	re := regexp.MustCompile(`^(.*?)([[:blank:]]*[KkMmGg]*i*[Bb]*[[:blank:]]*)$`)
+
+	sm := re.FindStringSubmatch(s)
+	if len(sm) != 3 {
+		log.Fatalf("no pattern match found for %q: %v\n", s, sm)
 	}
-	m := 1
-	switch w[1] {
-	case "KiB":
+
+	n := 0.0
+	if sm[1] != "" {
+		var err error
+		if n, err = strconv.ParseFloat(sm[1], 64); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	m := 1.0
+	switch strings.ToLower(strings.TrimSpace(sm[2])) {
+	case "kb":
+		m = 1000
+	case "kib":
 		m = 1024
-	case "MiB":
+	case "mb":
+		m = 1000 * 1000
+	case "mib":
 		m = 1024 * 1024
-	case "GiB":
+	case "gb":
+		m = 1000 * 1000 * 1000
+	case "gib":
 		m = 1024 * 1024 * 1024
 	}
-	return int64(n * float64(m))
+
+	return int64(n * m)
 }
 
 func nerdctlPull(name string, w io.Writer) error {
@@ -877,30 +900,6 @@ func nerdctlBuild(dir string, w io.Writer, t string, f string, o string, p strin
 	return nil
 }
 
-func cacheSize(s string) int64 {
-	s = strings.Replace(s, "B", "", 1)
-	if s == "" {
-		return 0
-	}
-	m := 1
-	switch s[len(s)-1] {
-	case 'K':
-		m = 1024
-		s = s[:len(s)-1]
-	case 'M':
-		m = 1024 * 1024
-		s = s[:len(s)-1]
-	case 'G':
-		m = 1024 * 1024 * 1024
-		s = s[:len(s)-1]
-	}
-	n, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return int64(n * float64(m))
-}
-
 func nerdctlBuildPrune() (int64, error) {
 	args := []string{"builder", "prune"}
 	nc, err := exec.Command(nerdctl, args...).CombinedOutput()
@@ -912,7 +911,7 @@ func nerdctlBuildPrune() (int64, error) {
 	for _, line := range lines {
 		if strings.HasPrefix(line, "Total:") {
 			s := strings.Replace(line, "Total:", "", 1)
-			size = cacheSize(strings.TrimSpace(s))
+			size = byteSize(strings.TrimSpace(s))
 		}
 	}
 	return size, nil
