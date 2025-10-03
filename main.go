@@ -1344,7 +1344,13 @@ func setupRouter() *gin.Engine {
 
 	r.GET("/:ver/images/:name/history", func(c *gin.Context) {
 		name := c.Param("name")
-		nchistory, err := nerdctlHistory(name)
+		image, err := nerdctlImage(name)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusNotFound)
+			return
+		}
+		// avoid "multiple IDs found with provided prefix"
+		nchistory, err := nerdctlHistory(image["Id"].(string))
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusNotFound)
 			return
