@@ -1,7 +1,10 @@
 ---
+version: "2"
 linters:
+  enable:
+    - govet
+    - gocyclo
+formatters:
   enable:
     - gofmt
     - goimports
-    - govet
-    - gocyclo
