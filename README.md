@@ -103,8 +103,7 @@ If you wanted to grant all users in the group "nerdctl" access:
 
 ```desktop
 [Socket]
-UMask=0007
-Group=nerdctl
+SocketGroup=nerdctl
 ```
 
 This would allow access without using `sudo` (or being `root`).
