@@ -309,6 +309,30 @@ func parseImageFilter(param []byte) string {
 	return ""
 }
 
+func removeDuplicateImages(images []map[string]interface{}) []map[string]interface{} {
+	best := map[string]string{}
+	for _, image := range images {
+		id := image["ID"].(string)
+		repotag := fmt.Sprintf("%s:%s", image["Repository"], image["Tag"])
+		if strings.HasSuffix(repotag, ":<none>") {
+			continue
+		}
+		best[id] = repotag
+	}
+	var result []map[string]interface{}
+	for _, image := range images {
+		if id, ok := image["ID"].(string); ok {
+			repotag := fmt.Sprintf("%s:%s", image["Repository"], image["Tag"])
+			if repotag != best[id] {
+				// there is a better version, so skip this duplicate id
+				continue
+			}
+		}
+		result = append(result, image)
+	}
+	return result
+}
+
 func nerdctlImages(filter string) []map[string]interface{} {
 	args := []string{"images"}
 	if filter != "" {
@@ -329,7 +353,7 @@ func nerdctlImages(filter string) []map[string]interface{} {
 		}
 		images = append(images, image)
 	}
-	return images
+	return removeDuplicateImages(images)
 }
 
 func nerdctlImage(name string) (map[string]interface{}, error) {
