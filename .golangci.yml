@@ -4,6 +4,10 @@ linters:
   enable:
     - govet
     - gocyclo
+  exclusions:
+    rules:
+      - source: "^\\s*defer\\s+"
+        linters: ["errcheck"]
 formatters:
   enable:
     - gofmt

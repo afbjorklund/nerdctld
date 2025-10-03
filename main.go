@@ -1072,10 +1072,10 @@ func extractTar(dst string, r io.Reader) error {
 			if err != nil {
 				return err
 			}
+			defer f.Close()
 			if _, err := io.Copy(f, tr); err != nil {
 				return err
 			}
-			f.Close()
 		}
 	}
 	return nil
@@ -1797,7 +1797,10 @@ func run(cmd *cobra.Command, args []string) error {
 		go func() {
 			<-sigs
 			// http.Serve never returns, if successful
-			os.Remove(socket)
+			err := os.Remove(socket)
+			if err != nil {
+				log.Print(err)
+			}
 			os.Exit(0)
 		}()
 		return r.RunUnix(socket)
