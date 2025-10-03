@@ -653,7 +653,7 @@ func byteSize(s string) int64 {
 	// "0B" -> ["0B" "0" "B"]
 	// "1.5GB" -> ["1.5GB", "1.5", "GB"]
 	// "741.4kB" -> ["741.4kB", "741.4", "kB"]
-	re := regexp.MustCompile(`^(.*?)([[:blank:]]*[KkMmGg]*i*[Bb]*[[:blank:]]*)$`)
+	re := regexp.MustCompile(`^([0-9.]*?)([[:blank:]]*[KkMmGg]*i*[Bb]*[[:blank:]]*)$`)
 
 	sm := re.FindStringSubmatch(s)
 	if len(sm) != 3 {
