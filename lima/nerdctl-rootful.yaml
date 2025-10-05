@@ -1,9 +1,8 @@
-# This example requires Lima v0.8.0 or later
 images:
-- location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img"
-  arch: "x86_64"
-- location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img"
-  arch: "aarch64"
+- location: https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.img
+  arch: x86_64
+- location: https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-arm64.img
+  arch: aarch64
 
 mounts:
 - location: "~"
@@ -26,7 +25,7 @@ provision:
     EOF
     fi
     NAME=nerdctld
-    VERSION=0.6.0
+    VERSION=0.7.0
     RELEASE=0
     case $(uname -m) in
       x86_64)   DEBARCH=amd64;;
