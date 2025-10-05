@@ -307,6 +307,11 @@ This program uses the "Gin" web framework for HTTP.
 
 It and docs can be found at <https://gin-gonic.com/> with some nice [examples](https://github.com/gin-gonic/examples)
 
+## Not implemented yet
+
+* run
+* exec
+
 ## Not to be implemented
 
 * buildx*     Docker Buildx
