@@ -61,6 +61,20 @@ type NerdctlContainer struct {
 
 var containers = map[string]NerdctlContainer{}
 
+type NerdctlExec struct {
+	ID   string
+	Name string
+	TTY  bool
+	Dead bool
+
+	Pid int
+	Cmd *exec.Cmd
+	Out io.ReadCloser
+	Err io.ReadCloser
+}
+
+var execs = map[string]NerdctlExec{}
+
 type NerdctlEvent struct {
 	Status   string
 	ID       string
@@ -809,6 +823,46 @@ func nerdctlAttach(id string, w io.Writer) error {
 		Err:    stderr,
 	}
 	return nil
+}
+
+func nerdctlExec(name string, w io.Writer, wd string, tty bool, command []string, environ []string) (string, error) {
+	args := []string{"exec", "-d"}
+	if tty {
+		args = append(args, "-t")
+	}
+	for _, env := range environ {
+		args = append(args, "-e", env)
+	}
+	if wd != "" {
+		args = append(args, "-w", wd)
+	}
+	args = append(args, name)
+	args = append(args, command...)
+	log.Printf("exec: %v\n", args)
+	cmd := exec.Command(nerdctl, args...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return "", err
+	}
+	err = cmd.Start()
+	if err != nil {
+		return "", err
+	}
+	pid := cmd.Process.Pid
+	id := fmt.Sprintf("%d", pid)
+	execs[id] = NerdctlExec{
+		ID:   id,
+		Name: name,
+		Cmd:  cmd,
+		Pid:  pid,
+		Out:  stdout,
+		Err:  stderr,
+	}
+	return id, nil
 }
 
 func nerdctlPull(name string, w io.Writer) error {
@@ -1833,6 +1887,44 @@ func setupRouter() *gin.Engine {
 		c.JSON(http.StatusCreated, container)
 	})
 
+	r.POST("/:ver/containers/:id/exec", func(c *gin.Context) {
+		id := c.Param("id")
+		log.Printf("id: %s", id)
+		var exec map[string]interface{}
+		err := c.BindJSON(&exec)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		wd := exec["WorkingDir"].(string)
+		cmd := exec["Cmd"].([]interface{})
+		var env []interface{}
+		if exec["Env"] != nil {
+			env = exec["Env"].([]interface{})
+		}
+		tty := exec["Tty"].(bool)
+		var instance struct {
+			ID string `json:"Id"`
+		}
+		cmds := []string{}
+		for _, c := range cmd {
+			cmds = append(cmds, c.(string))
+		}
+		envs := []string{}
+		for _, e := range env {
+			envs = append(envs, e.(string))
+		}
+		c.Status(http.StatusCreated)
+		ei, err := nerdctlExec(id, c.Writer, wd, tty, cmds, envs)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		instance.ID = ei
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusCreated, instance)
+	})
+
 	r.GET("/:ver/events", func(c *gin.Context) {
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.Status(http.StatusOK)
@@ -1982,6 +2074,125 @@ func setupRouter() *gin.Engine {
 		}
 
 		wg.Wait()
+	})
+
+	r.POST("/:ver/exec/:id/start", func(c *gin.Context) {
+		id := c.Param("id")
+		err := nerdctlAttach(id, c.Writer)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		c.Writer.Header().Set("Content-Type", "application/vnd.docker.raw-stream")
+		c.String(http.StatusSwitchingProtocols, "\n")
+		hj, ok := c.Writer.(http.Hijacker)
+		if !ok {
+			http.Error(c.Writer, "webserver doesn't support hijacking", http.StatusInternalServerError)
+			return
+		}
+		conn, bufrw, err := hj.Hijack()
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer conn.Close()
+		exec := execs[id]
+		var wg sync.WaitGroup
+		if !exec.TTY {
+			const STREAM_STDOUT = 1
+			const STREAM_STDERR = 2
+			wg.Add(2)
+			go func() {
+				reader := bufio.NewReader(exec.Out)
+				for !exec.Dead {
+					line, err := reader.ReadBytes('\n')
+					if err == io.EOF {
+						continue
+					}
+					if err != nil {
+						break
+					}
+					if len(line) > 0 {
+						l := len(line)
+						header := [8]byte{STREAM_STDOUT, 0, 0, 0, 0, 0, 0, byte(l % 256)}
+						_, err = bufrw.Write(header[:])
+						if err != nil {
+							break
+						}
+						_, err = bufrw.Write(line)
+						if err != nil {
+							break
+						}
+						err = bufrw.Flush()
+						if err != nil {
+							break
+						}
+					}
+				}
+				wg.Done()
+			}()
+			go func() {
+				reader := bufio.NewReader(exec.Err)
+				for !exec.Dead {
+					line, err := reader.ReadBytes('\n')
+					if err == io.EOF {
+						continue
+					}
+					if err != nil {
+						break
+					}
+					if len(line) > 0 {
+						l := len(line)
+						header := [8]byte{STREAM_STDERR, 0, 0, 0, 0, 0, 0, byte(l % 256)}
+						_, err = bufrw.Write(header[:])
+						if err != nil {
+							break
+						}
+						_, err = bufrw.Write(line)
+						if err != nil {
+							break
+						}
+						err = bufrw.Flush()
+						if err != nil {
+							break
+						}
+					}
+				}
+				wg.Done()
+			}()
+		}
+
+		_, err = exec.Cmd.Process.Wait()
+		if err != nil {
+			log.Printf("%v", err)
+		}
+		exec.Dead = true
+		delete(execs, id)
+
+		wg.Wait()
+	})
+
+	r.GET("/:ver/exec/:id/json", func(c *gin.Context) {
+		id := c.Param("id")
+		type exec struct {
+			ID          string
+			Running     bool
+			OpenStdin   bool
+			OpenStderr  bool
+			OpenStdout  bool
+			ContainerID string
+			Pid         int
+		}
+		var x exec
+		x.ID = id
+		x.ContainerID = execs[id].Name
+		x.Pid = execs[id].Pid
+		x.Running = !execs[id].Dead
+		x.OpenStdout = true
+		x.OpenStderr = true
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.JSON(http.StatusOK, x)
 	})
 
 	r.POST("/:ver/containers/:id/wait", func(c *gin.Context) {
