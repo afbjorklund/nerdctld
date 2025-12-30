@@ -1,3 +1,22 @@
+# DEPRECATED
+
+Docker Engine version 29 now uses the containerd image store by default:
+
+<https://docs.docker.com/engine/storage/containerd/>
+
+Thus there is no need to use this nerdctld middleware, can use dockerd:
+
+```json
+{
+  "features": {
+    "containerd-snapshotter": true
+  },
+  "containerd-namespace": "k8s.io"
+}
+```
+
+Docker Engine version 23 changed to using a buildkit builder by default.
+
 # nerdctld
 
 ![nerd daemon](nerdctld.png)
